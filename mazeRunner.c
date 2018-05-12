@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* Display the maze. */
+ // Display the maze. we want this one
 void ShowMaze(const char *maze, int width, int height) {
    int x, y;
    for(y = 0; y < height; y++) {
@@ -17,7 +17,7 @@ void ShowMaze(const char *maze, int width, int height) {
    }
 }
 
-/*  Carve the maze starting at x, y. */
+  // Carve the maze starting at x, y.  we want ths one 
 void CarveMaze(char *maze, int width, int height, int x, int y) {
 
    int x1, y1;    
@@ -54,7 +54,7 @@ void CarveMaze(char *maze, int width, int height, int x, int y) {
 
 }
 
-/* Generate maze in matrix maze with size width, height. */
+ // Generate maze in matrix maze with size width, height. MOST DEF WE WANT THIS ONE 
 void GenerateMaze(char *maze, int width, int height) {
 
    int x, y;
@@ -81,7 +81,7 @@ void GenerateMaze(char *maze, int width, int height) {
 
 }
 
-/* Solve the maze. */
+/* Solve the maze. HELL NO*/
 void SolveMaze(char *maze, int width, int height) {
 
    int dir, count;
