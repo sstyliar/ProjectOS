@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <ncurses.h>
 #include <unistd.h>
+
+
 
 // typedef struct {     //template
 //     int date;     
@@ -33,66 +36,54 @@
 
 
 
-//////////Humans////////////
+/////////Humans////////////
 
-// typedef struct 
-// {
-//    int health;
-//    int armor;
-//    int attack;
-//    int accurasy;
+typedef struct 
+{
+   int health;
+   int armor;
+   int attack;
+   int accurasy;
 
-// }human_stats;
+}human_stats;
 
-// typedef struct 
-// {
-//    int x;
-//    int y;
-      
-// }human_pos;
+typedef struct 
+{
+   int position;
+}human_pos;
 
-// typedef struct 
-// {  
-//    human_stats stats;
-//    human_pos pos;
+typedef struct 
+{  
+   human_stats stats;
+   human_pos pos;
         
-// }human;
+}human;
 
 
-///////////Monsters//////////////
+/////////Monsters////////////
 
-// typedef struct monster
+// typedef struct
+// {
+   
+// }monster_stats;
+
+// typedef struct 
 // {  
    
 // }monster;
 
-
-// typedef struct monster_pos
-// {
-   
-// }monster_pos;
-
-// typedef struct monster_stats
-// {
-   
-// }monster_pos;
-
 // ///////////Bosses//////////////
 
-// typedef struct boss
-// {
-   
-// }boss;
-
-// typedef struct boss_stats
+// typedef struct 
 // {
    
 // }boss_stats;
 
-// typedef struct boss_pos
+// typedef struct 
 // {
    
-// }boss_pos;
+// }boss;
+
 
 
 // ///////////Mmultiplayer Prototype///////////////
@@ -102,11 +93,86 @@
    
 // }multiPlayer;
 
+//Function to move human
+void moveHuman(const char *maze, int width, int height, human h1){
+ 
+   char buf[width*4];
+   FILE *file;
+   size_t nread;
+
+   int score_size = 7;
+   int maxX, maxY,x,y;
+
+   initscr();  //initialize
+   noecho();   //stop echoing of typed chars
+   curs_set(FALSE);
+   getmaxyx(stdscr, maxY, maxX); //get command win size
+
+   //New window
+   // WINDOW *Field = newwin(1, maxX, 0, 0); 
+   WINDOW *Maze = newwin(maxY - score_size, maxX, 0, 0); 
+   WINDOW *Stats = newwin(score_size, maxX, maxY - score_size, 0); 
+   WINDOW *Score = newwin(score_size, maxX-15, maxY - score_size, maxX-15); 
+   
+   //print on window
+   // mvwprintw(Field, 0, 0, "Field");
+   mvwprintw(Maze,0, 0, "Maze:");
 
 
+   mvwprintw(Stats, 0, 0, "Player1:");
+   mvwprintw(Stats, 2, 1, "Health:");
+   mvwprintw(Stats, 3, 1, "Armor:");
+   mvwprintw(Stats, 4, 1, "Attack:");
+   mvwprintw(Stats, 5, 1, "Accurasy:");
 
- // Display-save the maze. we want this one
-void Show_saveMaze(const char *maze, int width, int height, int file_num) {
+   mvwprintw(Score, 0, 4, "!Score!");
+   mvwprintw(Score, 3, 4, "13");
+   mvwprintw(Score, 3, 7, "-");
+   mvwprintw(Score, 3, 9, "65");
+   mvwprintw(Score, 5, 5, "W");
+   mvwprintw(Score, 5, 9, "L");
+
+   
+   //Refresh Window
+   // wrefresh(Field);               
+   wrefresh(Maze);               
+   wrefresh(Stats); 
+   wrefresh(Score); 
+   sleep(2); 
+   
+
+  
+   
+   file = fopen("level4.txt", "r");
+   if (file) {
+      int line = 2;
+      // while ((nread = fread(buf, 1, sizeof buf, file)) > 0){
+      while (fgets(buf,1024,file)){
+         // fwrite(buf, 1, nread, stdout);
+         // puts(buf);
+         mvwprintw(Maze,line,0,buf);
+         wrefresh(Maze);
+         sleep(3);
+         line++;
+      }
+       fclose(file);
+   }          
+                 
+   sleep(30);
+   //Clean up-delete window
+   // delwin(Field);
+   delwin(Maze);              
+   delwin(Stats);  
+   endwin();
+}
+
+// void loadMaze(){
+
+// }
+
+
+ // Display-save the maze. we want this one......VGALE TO HUMAN APO EKEI......
+void Show_saveMaze(const char *maze, int width, int height, human h1, int file_num) {
    int i, x, y;
 
    FILE *files[10];
@@ -123,13 +189,12 @@ void Show_saveMaze(const char *maze, int width, int height, int file_num) {
       for(x = 0; x < width; x++) {
          switch(maze[y * width + x]) {
          case 1:  printf("{||}"); fprintf(files[i],"{||}"); break;
-         case 2:  printf(" 👲  "); fprintf(files[i]," 👲   "); break;
-         case 3:  printf(" 👻  "); fprintf(files[i]," 👻   "); break;
-         case 4:  printf(" 👹  "); fprintf(files[i]," 👹   "); break;
-         case 5:  printf(" 💰  "); fprintf(files[i]," 💰   "); break;
+         // case 2:  printf(" 👲  "); fprintf(files[i]," 👲   "); break;
+         // case 3:  printf(" 👻  "); fprintf(files[i]," 👻   "); break;
+         // case 4:  printf(" 👹  "); fprintf(files[i]," 👹   "); break;
+         // case 5:  printf(" 💰  "); fprintf(files[i]," 💰   "); break;
          default: printf("    "); fprintf(files[i],"    "); break; 
          }
-         
       }
       printf("\n"); fprintf(files[i], "\n");
    }
@@ -185,7 +250,7 @@ void CarveMaze(char *maze, int width, int height, int x, int y) {
 }
 
  // Generate maze in matrix maze with size width, height.
-void GenerateMaze(char *maze, int width, int height) {
+void GenerateMaze(char *maze, int width, int height,human h1) {
    
       int x, y;
       /* Initialize the maze. */
@@ -205,7 +270,7 @@ void GenerateMaze(char *maze, int width, int height) {
       }
    
       //default eisodos k eksodos apo to lavurintho, maze[0][1] kai maze[..][..]
-      maze[0 * width + 1] = 2;
+      maze[h1.pos.position] = 2;
       maze[(height - 1) * width + (width - 2)] = 4;
 
 }
@@ -213,14 +278,17 @@ void GenerateMaze(char *maze, int width, int height) {
 
 int main(int argc,char *argv[]) {
 
-   // human h1;
-   // h1.pos.x = 0;
-   // h1.pos.x = 2;
-   
+   human h1;
+   h1.stats.health = 90;
+   h1.stats.armor = 45;
+   h1.stats.attack = 60;
+   h1.stats.accurasy = 100;
+   h1.pos.position = 1;
 
    int width, height;
    int file_num=1;
    char *maze;
+   
 
    // if(argc != 3 && argc != 4) {
    //    printf("usage: maze <width> <height> [s]\n");
@@ -235,17 +303,32 @@ int main(int argc,char *argv[]) {
    //    exit(EXIT_FAILURE);
    // }
    
-   for (int i = 7; i < 15; i+=2)
-   {  
+   // for (int i = 7; i < 15; i+=2)
+   // {  
+      int i = 7;
       maze = (char*)malloc(i * i * sizeof(char));
       if(maze == NULL) {
       printf("error: not enough memory\n");
       exit(EXIT_FAILURE);
       }
-      GenerateMaze(maze,i,i);
-      Show_saveMaze(maze,i,i,file_num);
+      GenerateMaze(maze,i,i,h1);
+      // Show_saveMaze(maze,i,i,h1,file_num);
+      moveHuman(maze,i,i,h1);
       free(maze);
       file_num++;
-   }
+   // }
+
+
+      
+
+
+
+
+
+
+
+
+
+
    return 0;
 }
