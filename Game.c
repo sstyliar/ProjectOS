@@ -10,7 +10,7 @@
 void registerf();
 void login();
 void Setup();
-void mazeGenerator(int width,int height);
+
 
 enum ma {W,A,S,D,X,Z};
 
@@ -74,34 +74,40 @@ void main()
      sleep(5);
      exit(0);
      }
-   mazeGenerator(20,20);
+  
 }
 
 
 
-void registerf()
+void registerf() //edw kateu8unetai o xrhsths gia na eggrafei
 {
   FILE *fp;
   char username[60];
   char password[60];
-  char c[60];
+  char u1[60];
   int k=0;
   
-    printf("Please enter your username:");
+    printf("Please enter a username:");
     scanf("%s",&username);
-    printf("Please enter your password:");
+    printf("Please enter a password:");
     scanf("%s",&password);
-    
-  //sprintf(username,"%s",username); //mallon 8etei to onoma sto telos sthn
-                                       //arxikh metavlhth kai dhmiourgei to arxeio  
-    fp=fopen("users","w");
-   
-     fprintf(fp,"username:%s\n",username);
-     fprintf(fp,"password:%s\n",password);
-      //grafei to password mesa sto arxeio me to onoma username
-     
-     printf("Your account has been created\n");
+    fp=fopen("users","r");
+    while(fscanf(fp,"%s",u1)!=EOF) //diavazei ta strings tou arxeiou grammh pros grammh kai apo8hkeuei to ka8e ena sthn u1 mexri na ftasei sto telos tou arxeiou
+    {  
+       if(strstr(u1,username)!=0) //elegxei an sthn string u1 uparxei h substring username epistrefei 0 an den uparxei.
+           
+       { printf("Your username is already taken\n");
+         printf("Please enter another username:");
+         scanf("%s",&username);
+       }
+    }
      fclose(fp);
+     fp=fopen("users","a");
+    //me to "a" grafei sto telos tou arxeiou
+    fprintf(fp," username:%s\n",username);
+    fprintf(fp," password:%s\n\n",password);
+    printf("Your account has been created\n");
+    fclose(fp);
     }
 
 
@@ -118,76 +124,58 @@ void login()
   printf("Please enter your password:");
   scanf("%s",&password);
   FILE *fp;
-  if ((fp = fopen("users", "r")))
-    {   
-      
-      while(fscanf(fp,"%s",c)!=EOF)
-      {  
-        if(strcmp(c,"username:%susername")==0)   //sugkrinei 2 sumvoloseires
-        { printf("your username is correct\n");
-          close(fp);
-          while(fscanf(fp,"%s",b))
+  fp = fopen("users", "r");
+  while(fscanf(fp,"%s",c)!=EOF)
+      { 
+        
+     
+        if(strstr(c,username)!=0)   //sugkrinei 2 sumvoloseires
+        { 
+          printf("your username is correct\n");
+          fclose(fp);
+          fp=fopen("users","r");
+          while(fscanf(fp,"%s",b)!=EOF)
           {
-           if(strcmp(b,"password:%spassword")==0)
-           {
-             fclose(fp);
-             printf("your password is correct\n");
-             sleep(1);
-             k=1;
-       
-           }}
-         }
-      } }
-     if(k==1)
-     {
+            if(strstr(b,password)!=0)
+            {
+               printf("your password is correct\n");
+               fclose(fp);
+            
+               }
+            else
+            {
+                printf("Your username or password is incorrect\n");  
+                printf("Please enter your username:");
+                scanf("%s",&username);
+                printf("Please enter your password:");
+                scanf("%s",&password);
+             
+             }
+
+          }
+        }
+        else
+        {
+          printf("Your username or password is incorrect\n");  
+          printf("Please enter your username:");
+          scanf("%s",&username);
+          printf("Please enter your password:");
+          scanf("%s",&password);
+         } 
+      }
+  
       printf("Logging in...\n");
       sleep(5);
-      }
-     else
-     {
-      printf("It seems that the username, or password is incorrect\n");
-      printf("You may now exit the game...\n");
-      sleep(7);
-      exit(0);
-     }
-   
-  
+
+
+
+
 }
 
 
 
 void Setup()
 {
-}
-
-
-void mazeGenerator(int width,int height)
-{   int i,j;
-   char maze[width][height];
-   for( i=0;i<width;i++)
-      {
-	     printf("-");
-	     
-      }
-      printf("\n");
-      for(i=0;i<height;i++)
-      {
- 	     for(j=0;j<width;j++)
- 	     {
-	       if(j==0|| j==width-1)
-	       { 
-	   	      printf("#");
-	               }
-
-            else if(i==0||i==height-1)
-            {
-              printf("#");
-                }
-              }
-        }
- 
-
-
 }
 
 
