@@ -49,7 +49,8 @@ typedef struct
 
 typedef struct 
 {
-   int position;
+	int y;
+	int x;
 }human_pos;
 
 typedef struct 
@@ -72,17 +73,28 @@ typedef struct
    
 // }monster;
 
-// ///////////Bosses//////////////
+// ///////////Boss//////////////
 
-// typedef struct 
-// {
+typedef struct 
+{
+   int health;
+   int armor;
+   int attack;
+   int accurasy;
    
-// }boss_stats;
+}boss_stats;
 
-// typedef struct 
-// {
-   
-// }boss;
+typedef struct 
+{
+	int x;
+	int y;
+}boss_pos;
+
+typedef struct 
+{
+   boss_pos pos;
+   boss_stats stats;
+}boss;
 
 
 
@@ -94,30 +106,30 @@ typedef struct
 // }multiPlayer;
 
 //Function to move human
-void moveHuman(const char *maze, int width, int height, human h1){
+void moveHuman(const char *maze, int width, int height, human h1,int file_num){
  
+   // File stuff
    char buf[width*4];
    FILE *file;
    size_t nread;
 
    int score_size = 7;
-   int maxX, maxY,x,y;
+   int maxX, maxY, dx, dy, ch;
+   int x = 0, y = 0;
 
-   initscr();  //initialize
+   initscr();  //initialize and create global vars
    noecho();   //stop echoing of typed chars
    curs_set(FALSE);
-   getmaxyx(stdscr, maxY, maxX); //get command win size
+   getmaxyx(stdscr, maxY, maxX); //get command window size
 
    //New window
-   // WINDOW *Field = newwin(1, maxX, 0, 0); 
    WINDOW *Maze = newwin(maxY - score_size, maxX, 0, 0); 
+   WINDOW *Game = newwin(maxY - score_size, maxX, 0, 0);
    WINDOW *Stats = newwin(score_size, maxX, maxY - score_size, 0); 
    WINDOW *Score = newwin(score_size, maxX-15, maxY - score_size, maxX-15); 
    
    //print on window
-   // mvwprintw(Field, 0, 0, "Field");
    mvwprintw(Maze,0, 0, "Maze:");
-
 
    mvwprintw(Stats, 0, 0, "Player1:");
    mvwprintw(Stats, 2, 1, "Health:");
@@ -126,9 +138,9 @@ void moveHuman(const char *maze, int width, int height, human h1){
    mvwprintw(Stats, 5, 1, "Accurasy:");
 
    mvwprintw(Score, 0, 4, "!Score!");
-   mvwprintw(Score, 3, 4, "13");
+   mvwprintw(Score, 3, 4, "13");  //WINS
    mvwprintw(Score, 3, 7, "-");
-   mvwprintw(Score, 3, 9, "65");
+   mvwprintw(Score, 3, 9, "65");  //LOSSES
    mvwprintw(Score, 5, 5, "W");
    mvwprintw(Score, 5, 9, "L");
 
@@ -138,32 +150,80 @@ void moveHuman(const char *maze, int width, int height, human h1){
    wrefresh(Maze);               
    wrefresh(Stats); 
    wrefresh(Score); 
-   sleep(2); 
+   sleep(1); 
    
 
   
    
-   file = fopen("level4.txt", "r");
+   file = fopen("level1.txt","r");
    if (file) {
       int line = 2;
-      // while ((nread = fread(buf, 1, sizeof buf, file)) > 0){
       while (fgets(buf,1024,file)){
-         // fwrite(buf, 1, nread, stdout);
-         // puts(buf);
          mvwprintw(Maze,line,0,buf);
          wrefresh(Maze);
-         sleep(3);
          line++;
       }
        fclose(file);
+   }
+
+
+   //Place human and Final Boss
+   mvwprintw(Maze,h1.pos.y,h1.pos.x, ":)");
+   mvwprintw(Maze,height+1,(width*4)-7 , ":#");
+   wrefresh(Maze);
+   sleep(1);
+
+	
+	
+   while(TRUE){
+   	keypad(Maze,TRUE);
+	nodelay(Maze, TRUE);
+   	ch = wgetch(Maze);
+	switch (ch) {
+	   case KEY_UP:
+	   	if (maze)
+	   	{
+	   		/* code */
+	   	}
+	   		mvwprintw(Maze,h1.pos.y - 1 ,h1.pos.x,":)");
+	   		wrefresh(Maze);
+	   		h1.pos.y = h1.pos.y - 1;
+	   		break;
+	   case KEY_DOWN: 
+	   		mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
+	   		wrefresh(Maze);
+	   		h1.pos.y = h1.pos.y + 1;
+	   		break;
+	   case KEY_RIGHT:
+	   		mvwprintw(Maze,h1.pos.y ,h1.pos.x + 2,":)");
+	   		wrefresh(Maze);
+	   		h1.pos.x = h1.pos.x + 2;
+	   		break;
+	   case KEY_LEFT: 
+	   		mvwprintw(Maze,h1.pos.y,h1.pos.x - 2,":)"); 
+	   		wrefresh(Maze);
+	   		h1.pos.x = h1.pos.x - 2;
+	   		break;
+	}
+
+	if (false)
+	{
+	   //Clean up-delete window
+	   delwin(Maze); 
+	   delwin(Game);                           
+	   delwin(Stats);  
+	   delwin(Score);  
+	   endwin();
+	   break;
+	}
    }          
-                 
-   sleep(30);
-   //Clean up-delete window
-   // delwin(Field);
-   delwin(Maze);              
-   delwin(Stats);  
-   endwin();
+     
+	// delwin(Maze);              
+	//    delwin(Stats);  
+	//    delwin(Score);  
+	//    endwin();
+
+   
 }
 
 // void loadMaze(){
@@ -222,10 +282,10 @@ void CarveMaze(char *maze, int width, int height, int x, int y) {
       case 2:  dx = -1; break;
       default: dy = -1; break;
       }
-      x1 = x + dx;      //
-      y1 = y + dy;      //
-      x2 = x1 + dx;     //
-      y2 = y1 + dy;     //
+      x1 = x + dx;      
+      y1 = y + dy;      
+      x2 = x1 + dx;     
+      y2 = y1 + dy;     
       
       if(x2 > 0 && x2 < width && y2 > 0 && y2 < height && maze[y1 * width + x1] == 1 && maze[y2 * width + x2] == 1) {
          maze[y1 * width + x1] = 0;
@@ -268,10 +328,11 @@ void GenerateMaze(char *maze, int width, int height,human h1) {
             CarveMaze(maze, width, height, x, y);
          }
       }
+
    
       //default eisodos k eksodos apo to lavurintho, maze[0][1] kai maze[..][..]
-      maze[h1.pos.position] = 2;
-      maze[(height - 1) * width + (width - 2)] = 4;
+      // maze[h1.pos.position] = 2;
+      // maze[(height - 1) * width + (width - 2)] = 4;
 
 }
 
@@ -283,7 +344,8 @@ int main(int argc,char *argv[]) {
    h1.stats.armor = 45;
    h1.stats.attack = 60;
    h1.stats.accurasy = 100;
-   h1.pos.position = 1;
+   h1.pos.y = 2;
+   h1.pos.x = 5;
 
    int width, height;
    int file_num=1;
@@ -303,7 +365,7 @@ int main(int argc,char *argv[]) {
    //    exit(EXIT_FAILURE);
    // }
    
-   // for (int i = 7; i < 15; i+=2)
+   // for (int i = 7; i < 15; i+=2)  // 7 9 11 13 15 
    // {  
       int i = 7;
       maze = (char*)malloc(i * i * sizeof(char));
@@ -313,22 +375,12 @@ int main(int argc,char *argv[]) {
       }
       GenerateMaze(maze,i,i,h1);
       // Show_saveMaze(maze,i,i,h1,file_num);
-      moveHuman(maze,i,i,h1);
+      moveHuman(maze,i,i,h1,file_num);
       free(maze);
       file_num++;
    // }
 
 
-      
-
-
-
-
-
-
-
-
-
-
    return 0;
+
 }
