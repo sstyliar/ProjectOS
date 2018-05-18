@@ -1,0 +1,35 @@
+*********STUFF TO BE DONE***********
+
+1.Add to read_file function:
+	DONE->	*Functionality to create 2d array with the maze values.
+				OR
+	DONE->	*Add it to show_saveMaze...probably better in the read_file.
+
+	DONE->	*Make if statments for wall detection/hit wall prevention before 
+	 		players movement.
+
+	DONE->	*Figure out how to add loot and monsters.
+				(Maybe from the array before while(keyboard input chech).
+
+	DONE->	*Make if statements for monster/boss/loot detection/guestion before fighting (y/n).			
+
+	*Figure out how to delete previous player position from the terminal.
+		&
+	DONE-> *Figure out how to refresh/erase outpout text in case of change.
+
+
+
+
+
+
+
+	DONE-> *change show_saveMaze to only save maze in files, script destination->Server
+
+	*DISABLE temp_maze display in window Maze
+
+
+
+
+
+
+	*CLEAN-UP
