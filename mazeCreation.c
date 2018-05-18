@@ -1,30 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <ncurses.h>
 #include <unistd.h>
 
 
 
-// typedef struct {     //template
-//     int date;     
-//     int month;    
-//     int year;     
-// } OfferDate;      
-                     
-                     
-// typedef struct {     
-// char* type;          
-// char* destination;    
-// float price;      
-// OfferDate date;      
-// } Offer;             //template
-
-
 //***General Notes***
 // Size of maze has to be by more than 7.
-// Width-Height have to match and be uneven or else maze will 
-// not be complete
+// Width-Height have to match and be uneven or else maze will not be complete
+
+//compile with: gcc mazeCreation.c -lncurses
 
 
 // struct human_stats;
@@ -105,37 +92,78 @@ typedef struct
    
 // }multiPlayer;
 
+
+
+//Erase previous position of da smiley
+void clearHistory(human h1, WINDOW *win){
+
+	mvwprintw(win, h1.pos.y, h1.pos.x,"  ");
+	wrefresh(win);
+
+}
+
+//Clear Output Window 
+void clearWindow(WINDOW *win, int maxX){
+	//temp solution
+	char *empty_string = "                                                        ";
+	for ( int i = 1; i < 4; ++i)
+	{
+		mvwprintw(win,i,1,empty_string);
+	}
+	wrefresh(win);
+}
+
 //Function to move human
-void moveHuman(const char *maze, int width, int height, human h1,int file_num){
+void moveHuman(const char *maze, int width, int height,char **temp_maze, human h1,int file_num){
  
    // File stuff
    char buf[width*4];
    FILE *file;
    size_t nread;
 
+   int notif_size = 7;
    int score_size = 7;
    int maxX, maxY, dx, dy, ch;
    int x = 0, y = 0;
 
+
+   char health[256];    
+   char armor[256];
+   char attack[256];
+   char accurasy[256];
+   
+
+   //Delete this
+   char tempMazeint[256];
+
+   sprintf(health,"%d",h1.stats.health);
+   sprintf(armor,"%d",h1.stats.armor);
+   sprintf(attack,"%d",h1.stats.attack);
+   sprintf(accurasy,"%d",h1.stats.accurasy);
+
    initscr();  //initialize and create global vars
    noecho();   //stop echoing of typed chars
-   curs_set(FALSE);
+   curs_set(FALSE);  //Makes cursor not visible
    getmaxyx(stdscr, maxY, maxX); //get command window size
 
    //New window
-   WINDOW *Maze = newwin(maxY - score_size, maxX, 0, 0); 
-   WINDOW *Game = newwin(maxY - score_size, maxX, 0, 0);
+   WINDOW *Maze = newwin(maxY - score_size*2, maxX, 0, 0);  
+   WINDOW *Output = newwin(maxY - score_size, maxX, maxY - score_size*2, 0); 
    WINDOW *Stats = newwin(score_size, maxX, maxY - score_size, 0); 
    WINDOW *Score = newwin(score_size, maxX-15, maxY - score_size, maxX-15); 
    
-   //print on window
-   mvwprintw(Maze,0, 0, "Maze:");
-
+   mvwprintw(Output,0, 0, "Game says:");
+ 
    mvwprintw(Stats, 0, 0, "Player1:");
    mvwprintw(Stats, 2, 1, "Health:");
+   mvwprintw(Stats, 2, 9, health);
    mvwprintw(Stats, 3, 1, "Armor:");
+   mvwprintw(Stats, 3, 7, armor);
    mvwprintw(Stats, 4, 1, "Attack:");
+   mvwprintw(Stats, 4, 8, attack);
    mvwprintw(Stats, 5, 1, "Accurasy:");
+   mvwprintw(Stats, 5, 10, accurasy);
+
 
    mvwprintw(Score, 0, 4, "!Score!");
    mvwprintw(Score, 3, 4, "13");  //WINS
@@ -145,72 +173,174 @@ void moveHuman(const char *maze, int width, int height, human h1,int file_num){
    mvwprintw(Score, 5, 9, "L");
 
    
-   //Refresh Window
-   // wrefresh(Field);               
-   wrefresh(Maze);               
+   //Refresh Window          
+   wrefresh(Output);               
    wrefresh(Stats); 
    wrefresh(Score); 
    sleep(1); 
    
 
-  
-   
+  int line;
+   //Read file function
    file = fopen("level1.txt","r");
    if (file) {
-      int line = 2;
+      line = 0;
       while (fgets(buf,1024,file)){
          mvwprintw(Maze,line,0,buf);
          wrefresh(Maze);
          line++;
       }
        fclose(file);
-   }
-
-
-   //Place human and Final Boss
-   mvwprintw(Maze,h1.pos.y,h1.pos.x, ":)");
-   mvwprintw(Maze,height+1,(width*4)-7 , ":#");
+   }	
+   mvwprintw(Maze,h1.pos.y,h1.pos.x,":)");
    wrefresh(Maze);
-   sleep(1);
 
-	
-	
    while(TRUE){
    	keypad(Maze,TRUE);
 	nodelay(Maze, TRUE);
    	ch = wgetch(Maze);
-	switch (ch) {
+	switch (ch){
 	   case KEY_UP:
-	   	if (maze)
-	   	{
-	   		/* code */
-	   	}
+	   if (h1.pos.y == 0)
+	   {
+	   		mvwprintw(Output,1, 1, "Glupi kurwa, you can't go up, go down...BLYAT!");
+	   		wrefresh(Output);
+	   		break;
+	   }
+	   else if ((temp_maze[h1.pos.y-1][h1.pos.x] == 0) && (temp_maze[h1.pos.y-1][h1.pos.x +1] != 1))
+	   {	
+	   		clearHistory(h1, Maze);
+	   		clearWindow(Output,maxX);
 	   		mvwprintw(Maze,h1.pos.y - 1 ,h1.pos.x,":)");
 	   		wrefresh(Maze);
 	   		h1.pos.y = h1.pos.y - 1;
 	   		break;
-	   case KEY_DOWN: 
-	   		mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
+	   }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 1){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you hit wall");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y-1][h1.pos.x] == 3){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you found rare monster vasilw");
+	   		mvwprintw(Output,2,1,"do you wish to fight and be rewarded upon vicory?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y-1][h1.pos.x] == 4){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! BLYAT! BLYAT! vrikes Final Boss");
+	   		mvwprintw(Output,2,1,"do you wish to fight and win your freedom?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");	
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   		
+	   case KEY_DOWN:
+	   if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && temp_maze[h1.pos.y+1][h1.pos.x +1] != 1)   
+	    {
+	    	clearHistory(h1, Maze);
+	    	clearWindow(Output,maxX);
+	    	mvwprintw(Maze,0,4,"{||}");
+	    	mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
 	   		wrefresh(Maze);
 	   		h1.pos.y = h1.pos.y + 1;
 	   		break;
+	    }else if(temp_maze[h1.pos.y+1][h1.pos.x] == 1){
+	    	clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you hit wall");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y+1][h1.pos.x] == 3){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you found rare monster vasilw");
+	   		mvwprintw(Output,2,1,"do you wish to fight and be rewarded upon vicory?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y+1][h1.pos.x] == 4){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! BLYAT! BLYAT! vrikes Final Boss");
+	   		mvwprintw(Output,2,1,"do you wish to fight and win your freedom?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");
+	   		wrefresh(Output);
+	   		break;
+	   	} 
+	   	
 	   case KEY_RIGHT:
+	   if (temp_maze[h1.pos.y][h1.pos.x + 3] == 0)
+	   {
+	   		clearHistory(h1, Maze);
+		   	clearWindow(Output,maxX);
 	   		mvwprintw(Maze,h1.pos.y ,h1.pos.x + 2,":)");
 	   		wrefresh(Maze);
 	   		h1.pos.x = h1.pos.x + 2;
 	   		break;
+	   }else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 1){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you hit wall");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 3){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you found rare monster vasilw");
+	   		mvwprintw(Output,2,1,"do you wish to fight and be rewarded upon vicory?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y][h1.pos.x + 2] == 4){
+	   		mvwprintw(Output,1, 1, "BLYAT! BLYAT! BLYAT! vrikes Final Boss");
+	   		mvwprintw(Output,2,1,"do you wish to fight and win your freedom?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");
+	   		wrefresh(Output);
+	   		break;
+	   	} 
+	   		
 	   case KEY_LEFT: 
+	   if (temp_maze[h1.pos.y][h1.pos.x - 2] == 0)
+	   {
+	   		clearHistory(h1, Maze);
+	   		clearWindow(Output,maxX);
 	   		mvwprintw(Maze,h1.pos.y,h1.pos.x - 2,":)"); 
 	   		wrefresh(Maze);
 	   		h1.pos.x = h1.pos.x - 2;
 	   		break;
+	   }else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 1){
+	   	clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you hit wall");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 3){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! you found rare monster vasilw");
+	   		mvwprintw(Output,2,1,"do you wish to fight and be rewarded upon vicory?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   	else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 4){
+	   		clearWindow(Output,maxX);
+	   		mvwprintw(Output,1, 1, "BLYAT! BLYAT! BLYAT! vrikes Final Boss");
+	   		mvwprintw(Output,2,1,"do you wish to fight and win your freedom?");
+	   		mvwprintw(Output,3,1,"(y/n)? Kurwa.");
+	   		wrefresh(Output);
+	   		break;
+	   	}
+	   		
 	}
 
 	if (false)
 	{
 	   //Clean up-delete window
 	   delwin(Maze); 
-	   delwin(Game);                           
+	   delwin(Output);                           
 	   delwin(Stats);  
 	   delwin(Score);  
 	   endwin();
@@ -231,12 +361,14 @@ void moveHuman(const char *maze, int width, int height, human h1,int file_num){
 // }
 
 
- // Display-save the maze. we want this one......VGALE TO HUMAN APO EKEI......
-void Show_saveMaze(const char *maze, int width, int height, human h1, int file_num) {
+ // Display&save the maze.
+void Show_saveMaze(const char *maze, int width, int height,int file_num) {
    int i, x, y;
+
 
    FILE *files[10];
    char filename[20];
+
    sprintf(filename, "level%d.txt", file_num);
    files[i] = fopen(filename, "w");
    if (files[i] == NULL)
@@ -248,17 +380,17 @@ void Show_saveMaze(const char *maze, int width, int height, human h1, int file_n
    for(y = 0; y < height; y++) {
       for(x = 0; x < width; x++) {
          switch(maze[y * width + x]) {
-         case 1:  printf("{||}"); fprintf(files[i],"{||}"); break;
-         // case 2:  printf(" 👲  "); fprintf(files[i]," 👲   "); break;
-         // case 3:  printf(" 👻  "); fprintf(files[i]," 👻   "); break;
-         // case 4:  printf(" 👹  "); fprintf(files[i]," 👹   "); break;
-         // case 5:  printf(" 💰  "); fprintf(files[i]," 💰   "); break;
-         default: printf("    "); fprintf(files[i],"    "); break; 
+         case 1: fprintf(files[i],"{||}"); break;   //Wall
+         // case 2: fprintf(files[i]," :) "); break;   //Human
+         case 3: fprintf(files[i]," :/ "); break;   //Monster
+         case 4: fprintf(files[i]," :# "); break;   //Boss
+         case 5: fprintf(files[i]," $$ "); break;   //Loot
+         default: fprintf(files[i],"    "); break;  //Free space
          }
       }
-      printf("\n"); fprintf(files[i], "\n");
+      fprintf(files[i], "\n");
    }
-   printf("\n");
+   fclose(files[i]);
 }
 
   // Anoigei to monopati
@@ -310,9 +442,10 @@ void CarveMaze(char *maze, int width, int height, int x, int y) {
 }
 
  // Generate maze in matrix maze with size width, height.
-void GenerateMaze(char *maze, int width, int height,human h1) {
+void GenerateMaze(char *maze,char **temp_maze, int width, int height,human h1) {
    
       int x, y;
+      int step = 0;
       /* Initialize the maze. */
       for(x = 0; x < width * height; x++) {
          maze[x] = 1;
@@ -331,9 +464,30 @@ void GenerateMaze(char *maze, int width, int height,human h1) {
 
    
       //default eisodos k eksodos apo to lavurintho, maze[0][1] kai maze[..][..]
-      // maze[h1.pos.position] = 2;
-      // maze[(height - 1) * width + (width - 2)] = 4;
+      maze[1] = 2;
+      maze[(height - 1) * width + (width - 2)] = 4;
 
+      for (int y = 0; y < height; y++)
+      {
+      	for (int x = 0; x < width*4; x+=4)
+      	{
+      		temp_maze[y][x] = maze[y*width+step];
+      		temp_maze[y][x+1] = maze[y*width+step];
+      		temp_maze[y][x+2] = maze[y*width+step];
+      		temp_maze[y][x+3] = maze[y*width+step];
+      		step++;
+      	}
+      	step = 0;	
+      }
+      // for (int y = 0; y < height; y++)
+      // {
+      // 	for (int x = 0; x < width*4; x++)
+      // 	{
+      // 		printf("%d",temp_maze[y][x]);
+      // 	}	
+      // 	printf("\n");
+      // }
+      
 }
 
 
@@ -344,13 +498,29 @@ int main(int argc,char *argv[]) {
    h1.stats.armor = 45;
    h1.stats.attack = 60;
    h1.stats.accurasy = 100;
-   h1.pos.y = 2;
+   h1.pos.y = 0;
    h1.pos.x = 5;
 
    int width, height;
    int file_num=1;
    char *maze;
    
+
+   //Dynamic part
+   // char **temp_maze = (char **)malloc((height*4)*sizeof(char*));
+   
+   // for (int i = 0; i < height; ++i)
+   // {
+   // 		temp_maze[i] = (char *)malloc((width*4)*sizeof(char));
+   // }
+
+
+   //Hardcoded part
+   char **temp_maze = (char **)malloc((7*4)*sizeof(char*));
+   for (int i = 0; i < 28; ++i)
+   {
+   		temp_maze[i] = (char *)malloc((7*4)*sizeof(char));
+   }
 
    // if(argc != 3 && argc != 4) {
    //    printf("usage: maze <width> <height> [s]\n");
@@ -373,14 +543,13 @@ int main(int argc,char *argv[]) {
       printf("error: not enough memory\n");
       exit(EXIT_FAILURE);
       }
-      GenerateMaze(maze,i,i,h1);
-      // Show_saveMaze(maze,i,i,h1,file_num);
-      moveHuman(maze,i,i,h1,file_num);
+      GenerateMaze(maze,temp_maze,i,i,h1);
+      Show_saveMaze(maze,i,i,file_num);
+      printf("\n");
+      moveHuman(maze,i,i,temp_maze,h1,file_num);
       free(maze);
+      free(temp_maze);
       file_num++;
    // }
-
-
    return 0;
-
 }
