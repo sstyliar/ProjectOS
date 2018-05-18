@@ -1,35 +1,50 @@
-*********STUFF TO BE DONE***********
+============================================================================================
+**********************************STUFF TO BE DONE******************************************
+============================================================================================
 
-1.Add to read_file function:
+
 	DONE->	*Functionality to create 2d array with the maze values.
-				OR
-	DONE->	*Add it to show_saveMaze...probably better in the read_file.
+				
+	ABORTED->	*Add it to show_saveMaze...probably better in the read_file.
 
 	DONE->	*Make if statments for wall detection/hit wall prevention before 
-	 		players movement.
+	 		 players movement.
 
 	DONE->	*Figure out how to add loot and monsters.
 				(Maybe from the array before while(keyboard input chech).
 
 	DONE->	*Make if statements for monster/boss/loot detection/guestion before fighting (y/n).			
 
-	*Figure out how to delete previous player position from the terminal.
-		&
-	DONE-> *Figure out how to refresh/erase outpout text in case of change.
+	DONE->	*Figure out how to delete previous player position from the terminal.
+		
+	DONE->	*Figure out how to refresh/erase outpout window text in case of change.
+
+	DONE->	*Change show_saveMaze to only save maze in files, script destination->Server.
+
+	DONE->	*DISABLE temp_maze display in window Maze.
+
+	DONE->	*Fix bugs with player movements. Player carves the maze as he passes. 
+
+
+	*Make new function for fighting calculations handled by moveHuman.
+
+	*Make new function to handle the increase in difficulty per level 
+	 in terms of monsters/boss stats.
+
+	*Change how monsters/loot/boss get inserted in the maze.
+		From the saveMaze function change it so they get inserted 
+
+	DONE->	*Add restrictions as to how many lesser monsters per maze depending on level.
+				Level 1 -> 0 lesser monster, level 2 -> 0 lesser monsters, etc. 
+
+	*Add new column to window stats for the mosnters and boss health bars.
+
+	*Add functionality for the user to decide if he wants to fight or not.
+	
+	*Remove monsters and loot if user declines.
 
 
 
 
-
-
-
-	DONE-> *change show_saveMaze to only save maze in files, script destination->Server
-
-	*DISABLE temp_maze display in window Maze
-
-
-
-
-
-
-	*CLEAN-UP
+	*CLEAN-UP.
+	*Make the MAKEFILE.
