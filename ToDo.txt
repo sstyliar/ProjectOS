@@ -2,7 +2,6 @@
 **********************************STUFF TO BE DONE******************************************
 ============================================================================================
 
-
 	DONE->	*Functionality to create 2d array with the maze values.
 				
 	ABORTED->	*Add it to show_saveMaze...probably better in the read_file.
@@ -26,8 +25,6 @@
 	DONE->	*Fix bugs with player movements. Player carves the maze as he passes. 
 
 
-	*Make new function for fighting calculations handled by moveHuman.
-
 	*Make new function to handle the increase in difficulty per level 
 	 in terms of monsters/boss stats.
 
@@ -45,6 +42,33 @@
 
 
 
+=====================
+VASILW
+=====================
 
+	*Make new function for fighting calculationS.
+
+
+
+
+
+
+====================
+XRHSTOS
+====================
+
+
+
+
+
+
+
+
+
+
+
+
+When project over:
 	*CLEAN-UP.
 	*Make the MAKEFILE.
+	*Go to Fiji.
