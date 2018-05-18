@@ -32,7 +32,7 @@
 		From the saveMaze function change it so they get inserted 
 
 	DONE->	*Add restrictions as to how many lesser monsters per maze depending on level.
-				Level 1 -> 0 lesser monster, level 2 -> 0 lesser monsters, etc. 
+				Level 1 -> 0 lesser monsters, level 2 -> 1 lesser monsters, etc. 
 
 	*Add new column to window stats for the mosnters and boss health bars.
 
