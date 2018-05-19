@@ -123,32 +123,92 @@ void clearWindow(WINDOW *win, int maxX){
 	char *empty_string = "                                                             ";
 	for ( int i = 1; i < 5; ++i)
 	{
-		mvwprintw(win,i,1,empty_string);
+      for (int j = 0; j < maxX; ++j)
+      {
+         mvwprintw(win,i,j," ");
+      }
 	}
 	wrefresh(win);
 }
 
 
-bool userControl(WINDOW *win, WINDOW *target){
-   int ch;
-   bool thinking = TRUE;
+bool userControl(WINDOW *win, WINDOW *target, char **temp_maze, bool thinking, bool bossEncounter, human h1, int direction, int maxX){
+   int ch, i;
    ch = wgetch(win);
    switch(ch)
    {
       case 'y':
-         clearWindow(target, 3);
+         clearWindow(target, maxX);
          mvwprintw(target, 1, 1, "Under Construction...");
          wrefresh(target);
          thinking = FALSE;
          break;
       case 'n':
-         clearWindow(target, 3);
-         mvwprintw(target, 1, 1, "im sleepyyyyyyyyy see you tomorrow");
-         wrefresh(target);
-         thinking = FALSE;
-         break;
+         if (bossEncounter == FALSE){
+            switch(direction){
+               case KEY_UP:
+                  clearWindow(target, maxX);
+                  mvwprintw(win, h1.pos.y-1, h1.pos.x, "  ");  //Vasilw
+                  mvwprintw(win, h1.pos.y-2, h1.pos.x, "  ");  //Loot   Same for KEY_DOWN.
+                  mvwprintw(target, 1, 1, "The path is free you western spy.");
+                  wrefresh(win);
+                  wrefresh(target);
+                  temp_maze[h1.pos.y-1][h1.pos.x] = 0;
+                  temp_maze[h1.pos.y-1][h1.pos.x+1] = 0;
+                  temp_maze[h1.pos.y-2][h1.pos.x] = 0;
+                  temp_maze[h1.pos.y-2][h1.pos.x+1] = 0;
+                  thinking = FALSE;
+                  break;
+               case KEY_DOWN:
+                  clearWindow(target, maxX);
+                  mvwprintw(win, h1.pos.y+1, h1.pos.x, "  ");
+                  mvwprintw(win, h1.pos.y+2, h1.pos.x, "  ");
+                  mvwprintw(target, 1, 1, "The path is free you western spy.");
+                  wrefresh(win);
+                  wrefresh(target);
+                  temp_maze[h1.pos.y+1][h1.pos.x] = 0;
+                  temp_maze[h1.pos.y+1][h1.pos.x+1] = 0;
+                  temp_maze[h1.pos.y+2][h1.pos.x] = 0;
+                  temp_maze[h1.pos.y+2][h1.pos.x+1] = 0;
+                  thinking = FALSE;
+                  break;
+               case KEY_RIGHT:
+                  clearWindow(target, maxX);
+                  mvwprintw(win, h1.pos.y, h1.pos.x+4, "      ");
+                  mvwprintw(target, 1, 1, "The path is free you western spy.");
+                  wrefresh(win);
+                  wrefresh(target);
+                  for (i = 3; i < 10; ++i)
+                  {
+                     temp_maze[h1.pos.y][h1.pos.x + i] = 0;
+                  }
+                  thinking = FALSE;
+                  break;
+               case KEY_LEFT:
+                  clearWindow(target, maxX);
+                  mvwprintw(win, h1.pos.y, h1.pos.x-9, "         ");
+                  mvwprintw(target, 1, 1, "The path is free you western spy.");
+                  wrefresh(win);
+                  wrefresh(target);
+                  for (i = 9; i >=2 ; --i)
+                  {
+                     temp_maze[h1.pos.y][h1.pos.x - i] = 0;
+                  }
+                  thinking = FALSE;
+                  break;               
+               }
+            break;
+         }
+         else{
+            clearWindow(target, maxX);
+            mvwprintw(target, 1, 1, "Oi pizdec, can't send boss away.");
+            wrefresh(target);
+            thinking = FALSE;
+            break;
+         }
+         
       case 'r':
-         clearWindow(target, 3);
+         clearWindow(target, maxX);
          mvwprintw(target, 1, 1, "You are free to go for now.");
          wrefresh(target);
          thinking = FALSE;
@@ -162,7 +222,7 @@ bool userControl(WINDOW *win, WINDOW *target){
 
 
 
-//Function to move human
+//Main Game Controller
 void mainController(const char *maze, int width, int height,char **temp_maze, human h1,monster m1,boss b1,int file_num){
  
    // File stuff
@@ -181,7 +241,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    char accurasy[256];
    char level[256];
    
-   bool thinking;
+   bool thinking, bossEncounter, start;
 
    initscr();  //initialize and create global vars
    noecho();   //stop echoing of typed chars
@@ -292,77 +352,83 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
       }
        fclose(file);
    }	
+
    mvwprintw(Maze,h1.pos.y,h1.pos.x,":)");
    wrefresh(Maze);
+   start = TRUE;
 
    while(TRUE){
       thinking = TRUE;
+      bossEncounter = FALSE;
    	keypad(Maze,TRUE);
 	   nodelay(Maze, TRUE);
    	ch = wgetch(Maze);
 	switch (ch){
 	   case KEY_UP:
-	   if (h1.pos.y == 0)
-	   {
-	   		mvwprintw(Output,1, 1, "Glupi kurwa, you can't go up, go down...BLYAT!");
-	   		wrefresh(Output);
-	   		break;
-	   }
-	   else if ((temp_maze[h1.pos.y-1][h1.pos.x] == 0) && (temp_maze[h1.pos.y-1][h1.pos.x +1] != 1))
-	   {	
-	   		clearHistory(h1, Maze);
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Maze,h1.pos.y - 1 ,h1.pos.x,":)");
-	   		wrefresh(Maze);
-	   		h1.pos.y = h1.pos.y - 1;
-	   		break;
-	   }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 1){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
-	   		wrefresh(Output);
-	   		break;
-	   	}
-	   else if(temp_maze[h1.pos.y-1][h1.pos.x] == 3){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
-	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
-            mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
-	   		wrefresh(Output);
-            while(thinking){
-               thinking = userControl(Maze, Output);
-            }
-            break;
-	   	}
-	   else if(temp_maze[h1.pos.y-1][h1.pos.x] == 4){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
-	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");	
-	   		wrefresh(Output);
-            while(thinking){
-               thinking = userControl(Maze, Output);
-            }
-	   		break;
-	   	}
-	   		
+   	   if (h1.pos.y == 0){
+   	   		mvwprintw(Output,1, 1, "Glupi kurwa, you can't go up, go down...BLYAT!");
+   	   		wrefresh(Output);
+   	   		break;
+   	   }else if ((temp_maze[h1.pos.y-1][h1.pos.x] == 0) && (temp_maze[h1.pos.y-1][h1.pos.x +1] != 1)){	
+   	   		clearHistory(h1, Maze);
+   	   		clearWindow(Output,maxX);
+   	   		mvwprintw(Maze,h1.pos.y - 1 ,h1.pos.x,":)");
+   	   		wrefresh(Maze);
+   	   		h1.pos.y = h1.pos.y - 1;
+   	   		break;
+   	   }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 1){
+   	   		clearWindow(Output,maxX);
+   	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
+   	   		wrefresh(Output);
+   	   		break;
+	   	}else if(temp_maze[h1.pos.y-1][h1.pos.x] == 3){
+   	   		clearWindow(Output,maxX);
+   	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
+   	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
+   	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
+               mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
+   	   		wrefresh(Output);
+               while(thinking){
+                  thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
+               }
+               break;
+	   	}else if(temp_maze[h1.pos.y-1][h1.pos.x] == 4){
+   	   		clearWindow(Output,maxX);
+   	   		mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
+   	   		mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
+   	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");	
+   	   		wrefresh(Output);
+               while(thinking){
+                  thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
+               }
+   	   		break;
+   	   }
 	   case KEY_DOWN:
-	   if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && temp_maze[h1.pos.y+1][h1.pos.x +1] != 1)   
-	    {
-	    	clearHistory(h1, Maze);
-	    	clearWindow(Output,maxX);
-	    	mvwprintw(Maze,0,4,"{||}");
-	    	mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
-	   		wrefresh(Maze);
-	   		h1.pos.y = h1.pos.y + 1;
-	   		break;
-	    }else if(temp_maze[h1.pos.y+1][h1.pos.x] == 1){
-	    	clearWindow(Output,maxX);
-	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
-	   		wrefresh(Output);
-	   		break;
-	   	}
-	   	else if(temp_maze[h1.pos.y+1][h1.pos.x] == 3){
+   	   if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && start == TRUE){
+   	    	clearHistory(h1, Maze);
+   	    	clearWindow(Output,maxX);
+   	    	mvwprintw(Maze,0,4,"{||}");
+   	    	mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
+   	   	wrefresh(Maze);
+   	   	h1.pos.y = h1.pos.y + 1;
+            start = FALSE;
+   	   	break;
+   	    }
+          else if(temp_maze[h1.pos.y+1][h1.pos.x] == 1 || temp_maze[h1.pos.y+1][h1.pos.x +1] == 1){
+            clearWindow(Output,maxX);
+            mvwprintw(Output,1, 1, "BLYAT! you Press wall");
+            wrefresh(Output);
+            break;
+         }
+          else if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && temp_maze[h1.pos.y+1][h1.pos.x +1] == 0){
+            clearHistory(h1, Maze);
+            clearWindow(Output,maxX);
+            mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
+            wrefresh(Maze);
+            h1.pos.y = h1.pos.y + 1;
+            break;
+          }
+	   	else if(temp_maze[h1.pos.y+1][h1.pos.x] == 3 && temp_maze[h1.pos.y+1][h1.pos.x +1] == 3){
 	   		clearWindow(Output,maxX);
 	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
 	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
@@ -370,7 +436,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
             mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output);
+               thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
             }
 	   		break;
 	   	}
@@ -381,25 +447,24 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output);
+               thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
             }
 	   		break;
 	   	} 
-	   	
 	   case KEY_RIGHT:
-	   if (temp_maze[h1.pos.y][h1.pos.x + 3] == 0)
-	   {
-	   		clearHistory(h1, Maze);
-		   	clearWindow(Output,maxX);
-	   		mvwprintw(Maze,h1.pos.y ,h1.pos.x + 2,":)");
-	   		wrefresh(Maze);
-	   		h1.pos.x = h1.pos.x + 2;
-	   		break;
-	   }else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 1){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
-	   		wrefresh(Output);
-	   		break;
+   	   if (temp_maze[h1.pos.y][h1.pos.x + 3] == 0)
+   	   {
+   	   		clearHistory(h1, Maze);
+   		   	clearWindow(Output,maxX);
+   	   		mvwprintw(Maze,h1.pos.y ,h1.pos.x + 2,":)");
+   	   		wrefresh(Maze);
+   	   		h1.pos.x = h1.pos.x + 2;
+   	   		break;
+   	   }else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 1){
+   	   		clearWindow(Output,maxX);
+   	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
+   	   		wrefresh(Output);
+   	   		break;
 	   	}
 	   	else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 3){
 	   		clearWindow(Output,maxX);
@@ -409,7 +474,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
             mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output);
+               thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
             }
 	   		break;
 	   	}
@@ -419,25 +484,25 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output);
+               thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
             }
 	   		break;
 	   	} 
 	   		
 	   case KEY_LEFT: 
-	   if (temp_maze[h1.pos.y][h1.pos.x - 2] == 0)
-	   {
-	   		clearHistory(h1, Maze);
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Maze,h1.pos.y,h1.pos.x - 2,":)"); 
-	   		wrefresh(Maze);
-	   		h1.pos.x = h1.pos.x - 2;
-	   		break;
-	   }else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 1){
-	   	clearWindow(Output,maxX);
-	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
-	   		wrefresh(Output);
-	   		break;
+   	   if (temp_maze[h1.pos.y][h1.pos.x - 2] == 0)
+   	   {
+   	   		clearHistory(h1, Maze);
+   	   		clearWindow(Output,maxX);
+   	   		mvwprintw(Maze,h1.pos.y,h1.pos.x - 2,":)"); 
+   	   		wrefresh(Maze);
+   	   		h1.pos.x = h1.pos.x - 2;
+   	   		break;
+   	   }else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 1){
+   	   	clearWindow(Output,maxX);
+   	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
+   	   		wrefresh(Output);
+   	   		break;
 	   	}
 	   	else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 3){
 	   		clearWindow(Output,maxX);
@@ -447,7 +512,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output);
+               thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
             }
 	   		break;
 	   	}
@@ -458,17 +523,17 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output);
+               thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
             }
 	   		break;
 	   	}
-	   	case KEY_END:
-	   	   delwin(Maze); 
-   		   delwin(Output);                           
-   		   delwin(Stats);  
-   		   delwin(Score);  
-   		   endwin();
-   		   break;
+	   case KEY_END:
+   	   delwin(Maze); 
+		   delwin(Output);                           
+		   delwin(Stats);  
+		   delwin(Score);  
+		   endwin();
+		   break;
 	   		
 	  }
    }          
@@ -630,7 +695,7 @@ int main(int argc,char *argv[]) {
    int width, height;
    int file_num=1;      
    char *maze;
-   int monsters = 1;
+   int monsters = 12;
    
 
    //Dynamic part
@@ -643,17 +708,16 @@ int main(int argc,char *argv[]) {
 
 
    //Hardcoded part for i=7
-   char **temp_maze = (char **)malloc((7*4)*sizeof(char*));
+   char **temp_maze = (char **)malloc((11*4)*sizeof(char*));
    for (int i = 0; i < 28; ++i)
    {
-   		temp_maze[i] = (char *)malloc((7*4)*sizeof(char));
+   		temp_maze[i] = (char *)malloc((11*4)*sizeof(char));
    }
 
-   
-   
+      
    // for (int i = 7; i < 15; i+=2)  // 7 9 11 13 15 anything more give segmentation fault
    // {  
-      int i = 7;
+      int i = 11;
       maze = (char*)malloc(i * i * sizeof(char));
       if(maze == NULL) {
       printf("error: not enough memory\n");
