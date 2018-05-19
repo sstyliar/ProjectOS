@@ -2,46 +2,59 @@
 **********************************STUFF TO BE DONE******************************************
 ============================================================================================
 
-	DONE->	*Functionality to create 2d array with the maze values.
-				
-	ABORTED->	*Add it to show_saveMaze...probably better in the read_file.
+  **SINGLE PLAYER PART**
 
-	DONE->	*Make if statments for wall detection/hit wall prevention before 
-	 		 players movement.
+		DONE->	*Functionality to create 2d array with the maze values.
+					
+		ABORTED->	*Add it to show_saveMaze...probably better in the read_file.
 
-	DONE->	*Figure out how to add loot and monsters.
-				(Maybe from the array before while(keyboard input chech).
+		DONE->	*Make if statments for wall detection/hit wall prevention before 
+		 		 players movement.
 
-	DONE->	*Make if statements for monster/boss/loot detection/guestion before fighting (y/n).			
+		DONE->	*Figure out how to add loot and monsters.
+					(Maybe from the array before while(keyboard input chech).
 
-	DONE->	*Figure out how to delete previous player position from the terminal.
+		DONE->	*Make if statements for monster/boss/loot detection/guestion before fighting (y/n).			
+
+		DONE->	*Figure out how to delete previous player position from the terminal.
+			
+		DONE->	*Figure out how to refresh/erase outpout window text in case of change.
+
+		DONE->	*Change show_saveMaze to only save maze in files, script destination->Server.
+
+		DONE->	*Reminder: Disable temp_maze display in window Maze.
+
+		DONE->	*Fix bugs with player movements. Player carves the maze as he passes. 
+
+		DONE->	*Add restrictions as to how many lesser monsters per maze depending on level.
+					Level 1 -> 0 lesser monsters, level 2 -> 1 lesser monsters, etc. 
+
+		DONE->	*Add new column to window stats for the mosnters and boss health bars.
+
+		DONE->	*Add functionality for the user to decide if he wants to fight or not.
+
+		DONE->	*Remove monsters and loot if user declines.
+
+		DONE->	*Fix bug where is gives segmentation fault when trying to display bigger than 15x15 maze.
+
+
+
+
 		
-	DONE->	*Figure out how to refresh/erase outpout window text in case of change.
 
-	DONE->	*Change show_saveMaze to only save maze in files, script destination->Server.
+		*Make new function to create initial window structure and display initial values( handled by mainController() ).
+			TIP:Add if statments for multiplayer mode on/off.
 
-	DONE->	*DISABLE temp_maze display in window Maze.
-
-	DONE->	*Fix bugs with player movements. Player carves the maze as he passes. 
-
-	DONE->	*Add restrictions as to how many lesser monsters per maze depending on level.
-				Level 1 -> 0 lesser monsters, level 2 -> 1 lesser monsters, etc. 
-
-	DONE->	*Add new column to window stats for the mosnters and boss health bars.
-
-	DONE->	*Add functionality for the user to decide if he wants to fight or not.
-
-
-	
-	*Remove monsters and loot if user declines.
-
-	*Make new function to handle the increase in difficulty per level 
-	 in terms of monsters/boss stats.
+		*Clean mainController().
 
 
 
 
 
+
+	 	
+
+  **MULTIPLAYER PART**
 
 
 
@@ -51,7 +64,7 @@
 VASILW
 =====================
 
-	*Make new function for fighting calculationS.
+	*Make new function for fighting calculations.
 
 
 
@@ -62,12 +75,17 @@ VASILW
 XRHSTOS
 ====================
 
+	*Set initial monster/boss stats values (atck,armor,health,accur,lvl) inside their respective structs for level 1.
+		
+	*Make new function to handle the increase in difficulty per level in terms of monsters/boss stats.
 
+	*Combine previous function with monsterRestriction( ln. 640 ).
+		Make it the monsterRestriction value and assign stats values.
+			For exmaple if level = 1 then no monsters allowed.
+			If level = 2, one monster allowed with health = 90; armor = 45; attack = 60; accurasy = 100; level = 1;
+			Or some shit like that, numbers are going to change anyways.
 
-
-
-
-
+	
 
 
 

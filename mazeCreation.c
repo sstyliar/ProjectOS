@@ -85,12 +85,6 @@ typedef struct
    
 }boss_stats;
 
-// typedef struct 
-// {
-// 	int x;
-// 	int y;
-// }boss_pos;
-
 typedef struct 
 {
    // boss_pos pos;
@@ -117,10 +111,10 @@ void clearHistory(human h1, WINDOW *win){
 
 }
 
+
 //Clear Output Window 
 void clearWindow(WINDOW *win, int maxX){
-	//temp solution
-	char *empty_string = "                                                             ";
+
 	for ( int i = 1; i < 5; ++i)
 	{
       for (int j = 0; j < maxX; ++j)
@@ -218,8 +212,6 @@ bool userControl(WINDOW *win, WINDOW *target, char **temp_maze, bool thinking, b
    return thinking;
 }
 
-   
-
 
 
 //Main Game Controller
@@ -241,7 +233,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    char accurasy[256];
    char level[256];
    
-   bool thinking, bossEncounter, start;
+   bool thinking, bossEncounter, start, end_game;
 
    initscr();  //initialize and create global vars
    noecho();   //stop echoing of typed chars
@@ -353,11 +345,13 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
        fclose(file);
    }	
 
+   //Initiallize players position
    mvwprintw(Maze,h1.pos.y,h1.pos.x,":)");
    wrefresh(Maze);
-   start = TRUE;
+   start = TRUE;     //Player is at the starting posistion
+   end_game = FALSE; 
 
-   while(TRUE){
+   while(end_game == FALSE){
       thinking = TRUE;
       bossEncounter = FALSE;
    	keypad(Maze,TRUE);
@@ -528,15 +522,15 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		break;
 	   	}
 	   case KEY_END:
-   	   delwin(Maze); 
-		   delwin(Output);                           
-		   delwin(Stats);  
-		   delwin(Score);  
-		   endwin();
-		   break;
-	   		
+         end_game = TRUE;
+		   break;		
 	  }
-   }          
+   }   
+   delwin(Maze); 
+   delwin(Output);                           
+   delwin(Stats);  
+   delwin(Score);  
+   endwin();       
 }
 
 
@@ -562,11 +556,10 @@ void saveMaze(const char *maze, int width, int height,int file_num) {
       for(x = 0; x < width; x++) {
          switch(maze[y * width + x]) {
          case 1: fprintf(files[i],"{||}"); break;   //Wall
-         // case 2: fprintf(files[i]," :) "); break;   //Human
          case 3: fprintf(files[i]," :/ "); break;   //Monster
          case 4: fprintf(files[i]," :# "); break;   //Boss
          case 5: fprintf(files[i]," $$ "); break;   //Loot
-         default: fprintf(files[i],"    "); break;  //Free space
+         default: fprintf(files[i],"    "); break;  //Empty space
          }
       }
       fprintf(files[i], "\n");
@@ -582,7 +575,7 @@ int CarveMaze(char *maze, int width, int height, int x, int y, int monsterRestri
    int dx, dy;
    int dir, count;
    int flag = 0;
-   int phantom_pos, loot_pos;
+   int phantom_pos = 0, loot_pos = 0;
 
 
    dir = rand() % 4;
@@ -607,26 +600,28 @@ int CarveMaze(char *maze, int width, int height, int x, int y, int monsterRestri
          dir = rand() % 4;
          count = 0;
          flag = 0;
+
          if (flag == 0 && monsterRestriction > 0)
          {
-
          	phantom_pos = y1 * width + x1;
             loot_pos = y2 * width + x2;
-            
-            
          }
-      } else {
+      }
+      else {
         dir = (dir + 1) % 4;  //auksanei to dir alla to krataei panta <4
         count += 1;
         flag++;
       }
    }
-   maze[phantom_pos] = 3;
-   maze[loot_pos] = 5;
+   if (phantom_pos != 0 && loot_pos != 0 )
+   {
+      maze[phantom_pos] = 3;
+      maze[loot_pos] = 5;
+   }
    return monsterRestriction-1;
 }
 
- // Generate maze in matrix maze with size width, height.
+ // Generate maze in matrix maze with size width * height.
 void GenerateMaze(char *maze,char **temp_maze, int width, int height,human h1, int monsterRestriction) {
    
       int x, y;
@@ -639,11 +634,13 @@ void GenerateMaze(char *maze,char **temp_maze, int width, int height,human h1, i
       
       /* Seed the random number generator. */
       srand(time(0));
-   
+
+
       /* Carve the maze. */
-      for(y = 1; y < height; y += 2) {       //y+=2 gia na exei treiades gia ton elegxo
-         for(x = 1; x < width; x += 2) {     
+      for(y = 1; y < height; y += 2) {       //y+=2 gia na exei duades gia ton elegxo
+         for(x = 1; x < width; x += 2) {    
            monsterRestriction = CarveMaze(maze, width, height, x, y, monsterRestriction);
+           // printf("%d\n", monsterRestriction);
          }
       }
 
@@ -695,7 +692,7 @@ int main(int argc,char *argv[]) {
    int width, height;
    int file_num=1;      
    char *maze;
-   int monsters = 12;
+   int monsters = 3;
    
 
    //Dynamic part
@@ -707,26 +704,27 @@ int main(int argc,char *argv[]) {
    // }
 
 
-   //Hardcoded part for i=7
-   char **temp_maze = (char **)malloc((11*4)*sizeof(char*));
-   for (int i = 0; i < 28; ++i)
+   //Hardcoded part for j  -   legal values 7 9 11 13 15 17 19 21
+   int j = 13; 
+   char **temp_maze = (char **)malloc((j*4)*sizeof(char*));
+   for (int i = 0; i < j; ++i)
    {
-   		temp_maze[i] = (char *)malloc((11*4)*sizeof(char));
+   		temp_maze[i] = (char *)malloc((j*4)*sizeof(char));    
    }
 
       
-   // for (int i = 7; i < 15; i+=2)  // 7 9 11 13 15 anything more give segmentation fault
+   // for (int i = 7; i < 15; i+=2)  
    // {  
-      int i = 11;
-      maze = (char*)malloc(i * i * sizeof(char));
+      
+      maze = (char*)malloc(j * j * sizeof(char));
       if(maze == NULL) {
-      printf("error: not enough memory\n");
-      exit(EXIT_FAILURE);
+         printf("error: not enough memory\n");
+         exit(EXIT_FAILURE);
       }
-      GenerateMaze(maze,temp_maze,i,i,h1,monsters);
-      saveMaze(maze,i,i,file_num);
+      GenerateMaze(maze,temp_maze,j,j,h1,monsters);
+      saveMaze(maze,j,j,file_num);
       printf("\n");
-      mainController(maze,i,i,temp_maze,h1,m1,b1,file_num);
+      mainController(maze,j,j,temp_maze,h1,m1,b1,file_num);
       free(maze);
       free(temp_maze);
       file_num++;
