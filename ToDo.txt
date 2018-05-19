@@ -24,21 +24,26 @@
 
 	DONE->	*Fix bugs with player movements. Player carves the maze as he passes. 
 
+	DONE->	*Add restrictions as to how many lesser monsters per maze depending on level.
+				Level 1 -> 0 lesser monsters, level 2 -> 1 lesser monsters, etc. 
+
+	DONE->	*Add new column to window stats for the mosnters and boss health bars.
+
+	DONE->	*Add functionality for the user to decide if he wants to fight or not.
+
+
+	
+	*Remove monsters and loot if user declines.
 
 	*Make new function to handle the increase in difficulty per level 
 	 in terms of monsters/boss stats.
 
-	*Change how monsters/loot/boss get inserted in the maze.
-		From the saveMaze function change it so they get inserted 
 
-	DONE->	*Add restrictions as to how many lesser monsters per maze depending on level.
-				Level 1 -> 0 lesser monsters, level 2 -> 1 lesser monsters, etc. 
 
-	*Add new column to window stats for the mosnters and boss health bars.
 
-	*Add functionality for the user to decide if he wants to fight or not.
-	
-	*Remove monsters and loot if user declines.
+
+
+
 
 
 
@@ -68,7 +73,8 @@ XRHSTOS
 
 
 
-When project over:
+When project is over:
+	*Dynamically set player/vasilw/boss stats 
 	*CLEAN-UP.
 	*Make the MAKEFILE.
 	*Go to Fiji.
