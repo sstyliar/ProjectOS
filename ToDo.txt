@@ -39,18 +39,12 @@
 
 
 
+		*Add variations for fighting monsters or boss and create template for multiplayer fighting function.
 
-		
 
-		*Make new function to create initial window structure and display initial values( handled by mainController() ).
-			TIP:Add if statments for multiplayer mode on/off.
+
 
 		*Clean mainController().
-
-
-
-
-
 
 	 	
 
@@ -60,23 +54,25 @@
 
 
 
-=====================
-VASILW
-=====================
+========================
+*********VASILW*********
+========================
 
-	*Make new function for fighting calculations.
+	DONE->	*Make new function for fighting calculations.
 
-
-
-
+	*Sockets galore...nough said.
 
 
-====================
-XRHSTOS
-====================
 
-	*Set initial monster/boss stats values (atck,armor,health,accur,lvl) inside their respective structs for level 1.
-		
+
+
+
+=======================
+********XRHSTOS********
+=======================
+
+	*Add functionality to auto-login if the user desires after the registering is done.
+
 	*Make new function to handle the increase in difficulty per level in terms of monsters/boss stats.
 
 	*Combine previous function with monsterRestriction( ln. 640 ).
@@ -92,7 +88,38 @@ XRHSTOS
 
 
 When project is over:
-	*Dynamically set player/vasilw/boss stats 
+
+	*DELETE everything but the positions & level from humanInit function cause human values
+	 are assigned by the user manually.
+
+	*Dynamically set player/vasilw/boss stats.
+
 	*CLEAN-UP.
+
 	*Make the MAKEFILE.
+
 	*Go to Fiji.
+
+
+
+
+
+
+
+
+=================================
+**************NOTES**************
+=================================
+
+	*Initial Stats for human for the standard 50 points that the game gives you
+	 when you first start it:
+			health=25
+			attack=10
+			armor=10
+			accurasy=0.5
+
+	*Level 1 boss stats that gives 80% chance of human winning the game:
+			health=20;
+			attack=5;
+			armor=5;
+			accurasy=0.3;
