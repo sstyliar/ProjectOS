@@ -4,7 +4,7 @@
 #include <time.h>
 #include <ncurses.h>
 #include <unistd.h>
-
+   
 
 
 //***General Notes***
@@ -37,8 +37,10 @@ typedef struct
    int health;
    int armor;
    int attack;
-   int accurasy;
+   float accurasy;
    int level;
+   int wins;
+   int loses;
 
 }human_stats;
 
@@ -63,7 +65,7 @@ typedef struct
    int health;
    int armor;
    int attack;
-   int accurasy;
+   float accurasy;
    int level;
 
 }monster_stats;
@@ -80,7 +82,7 @@ typedef struct
    int health;
    int armor;
    int attack;
-   int accurasy;
+   float accurasy;
    int level;
    
 }boss_stats;
@@ -93,33 +95,35 @@ typedef struct
 
 
 
-// ///////////Mmultiplayer Prototype///////////////
+/////////////Mmultiplayer Prototype///////////////
 // typedef struct multiPlayer
 // {
 
    
 // }multiPlayer;
 
-// gameStatsInit(h1, m, b);
-human humanInit(human h1){
 
-   h1.stats.health = 90;
-   h1.stats.armor = 45;
-   h1.stats.attack = 60;
-   h1.stats.accurasy = 100;
-   h1.stats.level = 1;
-   h1.pos.y = 0;
-   h1.pos.x = 5;
+// gameStatsInit
+human humanInit(human h){
 
-   return h1;
+   h.stats.health = 300;
+   h.stats.armor = 10;
+   h.stats.attack = 10;
+   h.stats.accurasy = 0.9;
+   h.stats.level = 1;
+   h.stats.wins = 0;
+   h.stats.loses = 0;
+   h.pos.x = 5;
+   h.pos.y = 0;
+   return h;
 }
 
 monster monsterInit(monster m){
 
-   m.stats.health = 90;
-   m.stats.armor = 45;
-   m.stats.attack = 60;
-   m.stats.accurasy = 100;
+   m.stats.health = 25;
+   m.stats.armor = 5;
+   m.stats.attack = 15;
+   m.stats.accurasy = 0.3;
    m.stats.level = 1;
 
    return m;
@@ -127,14 +131,16 @@ monster monsterInit(monster m){
 
 boss bossInit(boss b){
 
-   b.stats.health = 90;
-   b.stats.armor = 45;
-   b.stats.attack = 60;
-   b.stats.accurasy = 3;
+   b.stats.health = 30;
+   b.stats.armor = 5;
+   b.stats.attack = 15;
+   b.stats.accurasy = 0.3;
    b.stats.level = 1;
 
    return b;
 }
+
+
 
 
 
@@ -147,7 +153,6 @@ void clearHistory(human h1, WINDOW *win){
 }
 
 
-
 //Clear Output Window 
 void clearWindow(WINDOW *win, int maxX){
 
@@ -158,30 +163,287 @@ void clearWindow(WINDOW *win, int maxX){
          mvwprintw(win,i,j," ");
       }
 	}
-	wrefresh(win);
+	wrefresh(win);   
 }
 
 
-bool userControl(WINDOW *win, WINDOW *target, char **temp_maze, bool thinking, bool bossEncounter, human h1, int direction, int maxX){
-   int ch, i;
-   ch = wgetch(win);
+
+int human_Attack_monster(WINDOW *win, human h,monster m, boss b){  
+   int damage;
+   int rnd = rand()%100;      
+   float hit = rnd/100.0;
+   char health[256];      
+   damage = h.stats.attack - m.stats.armor;
+   if(hit <= h.stats.accurasy){
+
+      if(damage >=0){  
+          
+         m.stats.health = m.stats.health - damage;
+         mvwprintw(win, 2, 14, "  ");
+         sprintf(health,"%d",m.stats.health);
+         mvwprintw(win, 2, 1, "Monster health: ");
+         mvwprintw(win, 2, 18, "  ");
+         mvwprintw(win, 2, 18, health);
+         wrefresh(win);
+         
+         if(m.stats.health<=0){
+            m.stats.health=0;
+
+         }
+      }
+   }
+   return m.stats.health;
+}
+
+
+int monster_Attack_human(WINDOW *win, human h1,monster m, boss b){  
+   int damage;   
+   char health[256];                               
+   int rnd = rand()%100;      
+   float hit = rnd/100.0;
+   damage = m.stats.attack - h1.stats.armor;  //damage = 5
+   if(hit <= m.stats.accurasy){
+      if(damage >=0){
+         h1.stats.health = h1.stats.health  - damage;
+         sprintf(health,"%d",h1.stats.health);
+         mvwprintw(win, 3, 1, "human health: ");
+         mvwprintw(win, 3, 15, "  ");
+         mvwprintw(win, 3, 15, health);
+         wrefresh(win);
+         if(h1.stats.health<=0){
+            h1.stats.health=0;
+         }
+      }
+   }   
+   return h1.stats.health;
+}
+
+
+
+int human_Attack_boss(WINDOW *win, human h,monster m, boss b){  
+   int damage;
+   int rnd = rand()%100;      
+   float hit = rnd/100.0;
+   char health[256];
+      
+   damage = h.stats.attack - b.stats.armor;
+
+   
+   
+
+   if(hit <= h.stats.accurasy){
+
+      if(h.stats.attack - b.stats.armor >=0){  
+          
+         b.stats.health = b.stats.health - damage;
+         mvwprintw(win, 2, 14, "  ");
+         sprintf(health,"%d",b.stats.health);
+         mvwprintw(win, 2, 1, "Monster health: ");
+         mvwprintw(win, 2, 17, "  ");
+         mvwprintw(win, 2, 17, health);
+         wrefresh(win);
+         
+         if(b.stats.health<=0){
+            b.stats.health=0;
+
+         }
+      }
+   }
+
+   return b.stats.health;
+}
+
+
+int boss_Attack_human(WINDOW *win, human h1,monster m, boss b){  
+   int damage;   
+   char health[256];                               
+   int rnd = rand()%100;      
+   float hit = rnd/100.0;
+   damage = b.stats.attack - h1.stats.armor;  //damage = 5
+   
+   if(hit <= b.stats.accurasy){
+      if(damage >=0){
+         h1.stats.health = h1.stats.health  - damage;
+         sprintf(health,"%d",h1.stats.health);
+         mvwprintw(win, 3, 1, "human health: ");
+         mvwprintw(win, 3, 15, "  ");
+         mvwprintw(win, 3, 15, health);
+         wrefresh(win);
+         if(h1.stats.health<=0){
+            h1.stats.health=0;
+         }
+      }
+   }   
+   
+   return h1.stats.health;
+}
+
+int battleController(WINDOW *win, human h1, monster m, boss b, int swit){
+   int winner;
+   // char health[256];
+   bool fighting = TRUE;
+
+   switch(swit){
+      case 1:
+         do{
+               time_t t;
+               srand((unsigned) time(&t));
+
+               m.stats.health = human_Attack_monster(win,h1,m,b);     
+               h1.stats.health = monster_Attack_human(win, h1,m,b);
+               sleep(1);
+
+               if(h1.stats.health==0 || m.stats.health==0){
+                  if(m.stats.health == 0){
+                     winner = 1;
+                     fighting = FALSE;       
+                  }
+                  else if (h1.stats.health == 0){
+                     winner = 2;
+                     fighting = FALSE;       
+                  }
+               }
+
+            }while(fighting == TRUE);
+            break;
+      case 2:
+         do{
+            time_t t;
+            srand((unsigned) time(&t));
+
+            b.stats.health = human_Attack_boss(win,h1,m,b);     
+            h1.stats.health = boss_Attack_human(win,h1,m,b);
+            sleep(1);
+
+            if(h1.stats.health==0 || b.stats.health==0){
+               if(b.stats.health == 0){
+                  winner = 1;
+                  fighting = FALSE;       
+               }
+               else if (h1.stats.health == 0){
+                  winner = 2;
+                  fighting = FALSE;       
+               }
+            }
+
+         }while(fighting == TRUE);
+         break;
+   }
+   
+   return winner;
+}
+
+
+bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score, char **temp_maze, bool thinking, bool bossEncounter, human h1, monster m, boss b, int direction, int maxX){
+   int ch, i,winner, wins, loses;
+   ch = wgetch(window);
+   char health[256];
+   char score[56];
+   
+   
    switch(ch)
    {
       case 'y':
          clearWindow(target, maxX);
-         mvwprintw(target, 1, 1, "Under Construction...");
+         mvwprintw(target,1,1,"Fighting commenced");  
          wrefresh(target);
-         thinking = FALSE;
-         break;
+         sleep(1);
+         if(bossEncounter == FALSE){
+            winner =  battleController(target,h1, m, b, 1);
+            clearWindow(target, maxX);
+            mvwprintw(target,1,1,"Fighting ended.");  
+            if (winner == 1)
+            {
+               mvwprintw(target,2,1,"Winner was declared the human pizdek."); 
+               mvwprintw(target, 3, 1, "The path is free you western spy.");
+               switch(direction){
+               case KEY_UP:
+                  mvwprintw(window, h1.pos.y-1, h1.pos.x, "  ");  //Vasilw                 
+                  wrefresh(window);
+                  temp_maze[h1.pos.y-1][h1.pos.x] = 0;
+                  temp_maze[h1.pos.y-1][h1.pos.x+1] = 0;
+                  break;
+               case KEY_DOWN:
+                  mvwprintw(window, h1.pos.y+1, h1.pos.x, "  ");
+                  wrefresh(window);
+                  temp_maze[h1.pos.y+1][h1.pos.x] = 0;
+                  temp_maze[h1.pos.y+1][h1.pos.x+1] = 0;
+                  break;
+               case KEY_RIGHT:
+                  mvwprintw(window, h1.pos.y, h1.pos.x+4, "    ");
+                  wrefresh(window);
+                  for (i = 3; i < 8; ++i)
+                  {
+                     temp_maze[h1.pos.y][h1.pos.x + i] = 0;
+                  }
+                  break;
+               case KEY_LEFT:
+                  mvwprintw(window, h1.pos.y, h1.pos.x-5, "    ");
+                  wrefresh(window);
+                  for (i = 5; i >=2 ; --i)
+                  {
+                     temp_maze[h1.pos.y][h1.pos.x - i] = 0;
+                  }
+                  break;               
+               }
+               mvwprintw(stats, 3, 62, "0 ");      //Zero Vasilw health
+               h1.stats.wins++;
+               sprintf(score,"%d",h1.stats.wins);
+               mvwprintw(Score, 3, 5, score);  //WINS
+            }
+            else{
+               mvwprintw(target,2,1,"We lost bois. CY@");
+               mvwprintw(window,h1.pos.y,h1.pos.x, "  ");   //Erase human
+               mvwprintw(stats, 2, 9, "0 ");    //Zero humam health
+               h1.stats.loses++;
+               sprintf(score,"%d",h1.stats.loses);
+               mvwprintw(Score, 3, 9, score);  //LOSES
+            }
+            wrefresh(target);
+            wrefresh(stats);
+            wrefresh(Score);
+            thinking = FALSE;
+            break;
+         }
+         else if(bossEncounter == TRUE){
+            winner =  battleController(target,h1, m, b, 2);
+            clearWindow(target, maxX);
+            mvwprintw(target,1,1,"Fighting ended.");  
+            if (winner == 1)
+            {
+               mvwprintw(target,2,1,"Winner was declared the human pizdek."); 
+               mvwprintw(target, 3, 1, "The path is free you western spy.");
+               mvwprintw(window,h1.pos.y+1,h1.pos.x, "  "); //Erase boss
+               temp_maze[h1.pos.y+1][h1.pos.x] = 0;
+               temp_maze[h1.pos.y+1][h1.pos.x+1] = 0;
+               mvwprintw(stats, 6, 62, "0 ");      //Zero Big Boss health
+               h1.stats.wins++;
+               sprintf(score,"%d",h1.stats.wins);
+               mvwprintw(Score, 3, 5, score);  //WINS
+            }
+            else{
+               mvwprintw(target,2,1,"We lost bois. CY@");
+               mvwprintw(window,h1.pos.y,h1.pos.x, "  ");   //Erase human
+               mvwprintw(stats, 2, 9, "0 ");    //Zero humam health
+               h1.stats.loses++;
+               sprintf(score,"%d",h1.stats.loses);
+               mvwprintw(Score, 3, 9, score);  //LOSES
+            }
+            wrefresh(target);
+            wrefresh(stats);
+            wrefresh(Score);
+            thinking = FALSE;
+            break;
+         }
       case 'n':
          if (bossEncounter == FALSE){
             switch(direction){
                case KEY_UP:
                   clearWindow(target, maxX);
-                  mvwprintw(win, h1.pos.y-1, h1.pos.x, "  ");  //Vasilw
-                  mvwprintw(win, h1.pos.y-2, h1.pos.x, "  ");  //Loot   Same for KEY_DOWN.
+                  mvwprintw(window, h1.pos.y-1, h1.pos.x, "  ");  //Vasilw
+                  mvwprintw(window, h1.pos.y-2, h1.pos.x, "  ");  //Loot   Same for KEY_DOWN.
                   mvwprintw(target, 1, 1, "The path is free you western spy.");
-                  wrefresh(win);
+                  wrefresh(window);
                   wrefresh(target);
                   temp_maze[h1.pos.y-1][h1.pos.x] = 0;
                   temp_maze[h1.pos.y-1][h1.pos.x+1] = 0;
@@ -191,10 +453,10 @@ bool userControl(WINDOW *win, WINDOW *target, char **temp_maze, bool thinking, b
                   break;
                case KEY_DOWN:
                   clearWindow(target, maxX);
-                  mvwprintw(win, h1.pos.y+1, h1.pos.x, "  ");
-                  mvwprintw(win, h1.pos.y+2, h1.pos.x, "  ");
+                  mvwprintw(window, h1.pos.y+1, h1.pos.x, "  ");
+                  mvwprintw(window, h1.pos.y+2, h1.pos.x, "  ");
                   mvwprintw(target, 1, 1, "The path is free you western spy.");
-                  wrefresh(win);
+                  wrefresh(window);
                   wrefresh(target);
                   temp_maze[h1.pos.y+1][h1.pos.x] = 0;
                   temp_maze[h1.pos.y+1][h1.pos.x+1] = 0;
@@ -204,9 +466,9 @@ bool userControl(WINDOW *win, WINDOW *target, char **temp_maze, bool thinking, b
                   break;
                case KEY_RIGHT:
                   clearWindow(target, maxX);
-                  mvwprintw(win, h1.pos.y, h1.pos.x+4, "      ");
+                  mvwprintw(window, h1.pos.y, h1.pos.x+4, "      ");
                   mvwprintw(target, 1, 1, "The path is free you western spy.");
-                  wrefresh(win);
+                  wrefresh(window);
                   wrefresh(target);
                   for (i = 3; i < 10; ++i)
                   {
@@ -216,9 +478,9 @@ bool userControl(WINDOW *win, WINDOW *target, char **temp_maze, bool thinking, b
                   break;
                case KEY_LEFT:
                   clearWindow(target, maxX);
-                  mvwprintw(win, h1.pos.y, h1.pos.x-9, "         ");
+                  mvwprintw(window, h1.pos.y, h1.pos.x-9, "         ");
                   mvwprintw(target, 1, 1, "The path is free you western spy.");
-                  wrefresh(win);
+                  wrefresh(window);
                   wrefresh(target);
                   for (i = 9; i >=2 ; --i)
                   {
@@ -251,7 +513,7 @@ bool userControl(WINDOW *win, WINDOW *target, char **temp_maze, bool thinking, b
 
 
 //Main Game Controller
-void mainController(const char *maze, int width, int height,char **temp_maze, human h1,monster m,boss b,int file_num){
+void mainController(const char *maze, int width, int height,char **temp_maze, human h1,monster m, boss b, int file_num){
  
    // File stuff
    char buf[width*4];
@@ -289,7 +551,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    sprintf(health,"%d",h1.stats.health);
    sprintf(armor,"%d",h1.stats.armor);
    sprintf(attack,"%d",h1.stats.attack);
-   sprintf(accurasy,"%d",h1.stats.accurasy);
+   sprintf(accurasy,"%f",h1.stats.accurasy);
    sprintf(level,"%d",h1.stats.level);
 
    mvwprintw(Stats, 0, 0, "Player1:");
@@ -308,7 +570,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    // sprintf(health,"%d",p2.stats.health);
    // sprintf(armor,"%d",p2.stats.armor);
    // sprintf(attack,"%d",p2.stats.attack);
-   // sprintf(accurasy,"%d",p2.stats.accurasy);
+   // sprintf(accurasy,"%f",p2.stats.accurasy);
    
    // mvwprintw(Stats, 0, 16, "Player2:");
    // mvwprintw(Stats, 2, 17, "Health:");
@@ -327,7 +589,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    // sprintf(health,"%d",p3.stats.health);
    // sprintf(armor,"%d",p3.stats.armor);
    // sprintf(attack,"%d",p3.stats.attack);
-   // sprintf(accurasy,"%d",p3.stats.accurasy);
+   // sprintf(accurasy,"%f",p3.stats.accurasy);
    
    // mvwprintw(Stats, 0, 33, "Player3:");
    // mvwprintw(Stats, 2, 34, "Health:");
@@ -344,21 +606,23 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 
    //Vasilw
    mvwprintw(Stats, 2, 53, "Vasilw:");
+   sprintf(health,"%d",m.stats.health);
    mvwprintw(Stats, 3, 54, "Health:");
    mvwprintw(Stats, 3, 62, health);
 
 
    //Final Boss
    mvwprintw(Stats, 5, 53, "Big Boss:");
+   sprintf(health,"%d",b.stats.health);
    mvwprintw(Stats, 6, 54, "Health:");
    mvwprintw(Stats, 6, 62, health);
 
 
    //Score
    mvwprintw(Score, 0, 4, "!Score!");
-   mvwprintw(Score, 3, 4, "13");  //WINS
+   
    mvwprintw(Score, 3, 7, "-");
-   mvwprintw(Score, 3, 9, "65");  //LOSSES
+   
    mvwprintw(Score, 5, 5, "W");
    mvwprintw(Score, 5, 9, "L");
 
@@ -414,13 +678,13 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    	   		break;
 	   	}else if(temp_maze[h1.pos.y-1][h1.pos.x] == 3){
    	   		clearWindow(Output,maxX);
-   	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
+   	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
    	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
    	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
                mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
    	   		wrefresh(Output);
                while(thinking){
-                  thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
+                  thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
                }
                break;
 	   	}else if(temp_maze[h1.pos.y-1][h1.pos.x] == 4){
@@ -430,12 +694,20 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");	
    	   		wrefresh(Output);
                while(thinking){
-                  thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
+                  thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
                }
    	   		break;
    	   }
 	   case KEY_DOWN:
-   	   if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && start == TRUE){
+         if(h1.pos.y == (height-1)){
+            clearWindow(Output,maxX);
+            mvwprintw(Output,1,1,"You beat the game...advansing level in 1 second.");
+            wrefresh(Output);
+            sleep(1);
+            //Add new level function
+            break;
+         } 
+   	   else if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && start == TRUE){
    	    	clearHistory(h1, Maze);
    	    	clearWindow(Output,maxX);
    	    	mvwprintw(Maze,0,4,"{||}");
@@ -461,13 +733,13 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
           }
 	   	else if(temp_maze[h1.pos.y+1][h1.pos.x] == 3 && temp_maze[h1.pos.y+1][h1.pos.x +1] == 3){
 	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
+	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
 	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
 	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
             mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
+               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
             }
 	   		break;
 	   	}
@@ -478,10 +750,11 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
+               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
             }
 	   		break;
-	   	} 
+	   	}
+
 	   case KEY_RIGHT:
    	   if (temp_maze[h1.pos.y][h1.pos.x + 3] == 0)
    	   {
@@ -505,8 +778,8 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
             mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
-            }
+               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
+            } 
 	   		break;
 	   	}
 	   	else if(temp_maze[h1.pos.y][h1.pos.x + 2] == 4){
@@ -515,7 +788,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
+               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
             }
 	   		break;
 	   	} 
@@ -537,13 +810,13 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   	}
 	   	else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 3){
 	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
+	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
 	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
             mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
 	   		mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, temp_maze, thinking, FALSE, h1, ch, maxX);
+               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
             }
 	   		break;
 	   	}
@@ -554,7 +827,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
 	   		wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, temp_maze, thinking, TRUE, h1, ch, maxX);
+               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
             }
 	   		break;
 	   	}
@@ -706,7 +979,7 @@ int main(int argc,char *argv[]) {
    human h1;
    human h2;
    human h3;
-   
+
    int multiPlayer = 1;
    if (multiPlayer == 0)
    {
@@ -719,10 +992,11 @@ int main(int argc,char *argv[]) {
    }
  
    monster m;
-   monsterInit(m);
+   m = monsterInit(m);
 
    boss b;
-   bossInit(b);
+   b = bossInit(b);
+
 
 
    
@@ -762,7 +1036,8 @@ int main(int argc,char *argv[]) {
       GenerateMaze(maze,temp_maze,j,j,h2,monsters);
       saveMaze(maze,j,j,file_num);
       printf("\n");
-      mainController(maze,j,j,temp_maze,h2,m,b,file_num);
+      mainController(maze, j, j, temp_maze, h1, m, b, file_num);
+
       free(maze);
       free(temp_maze);
       file_num++;
