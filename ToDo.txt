@@ -37,9 +37,7 @@
 
 		DONE->	*Fix bug where is gives segmentation fault when trying to display bigger than 15x15 maze.
 
-
-
-		*Add variations for fighting monsters or boss and create template for multiplayer fighting function.
+		DONE->	*Add variations for fighting monsters or boss and create template for multiplayer fighting function.
 
 
 
@@ -89,7 +87,7 @@
 	*Create user interface for the user to assign points( noecho() and curs_set() to FALSE) and find out how to make cursor visible and input not recognized until user presses Enter ( maybe make it so wgetch(window) only recognizes KEY_ENTER to save-apply changes 
 	to stats, else just print user input to the window). 
 
-	*Assign points everytime he wins or loses a fight vs a monster or a boss and when he reaches loot. 
+	*Assign points everytime he wins a fight vs a monster or a boss and when he reaches loot. 
 
 
 
@@ -114,19 +112,25 @@ When project is over:
 
 
 
-=================================
-**************NOTES**************
-=================================
+=======================================================================
+*********************************NOTES*********************************
+=======================================================================
 
 	*Initial Stats for human for the standard 50 points that the game gives you
 	 when you first start it:
-			health=25
-			attack=10
-			armor=10
-			accurasy=0.5
+			stats.health = 25;
+			stats.armor = 10;
+			stats.attack = 10;
+			stats.accurasy = 0.5;
 
 	*Level 1 boss stats that gives 80% chance of human winning the game:
-			health=20;
-			attack=5;
-			armor=5;
-			accurasy=0.3;
+			stats.health = 30;
+   			stats.armor = 5;
+   			stats.attack = 15;
+   			stats.accurasy = 0.4;
+
+   	*Level 1 boss stats that gives 80% chance of human winning the game:
+			stats.health = 25;
+   			stats.armor = 5;
+   			stats.attack = 10;
+   			stats.accurasy = 0.3;

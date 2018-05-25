@@ -9,17 +9,11 @@
 
 //***General Notes***
 // Size of maze has to be by more than 7.
-// Width-Height have to match and be uneven or else maze will not be complete
+// Width-Height have to match and be uneven or else maze will not be complete.
 
-//compile with: gcc mazeCreation.c -lncurses
+//compile with: gcc nameOfFile.c -lncurses
 
 
-// struct human_stats;
-// struct human_pos;
-// struct boss_stats;
-// struct boss_pos;
-// struct monster_pos;
-// struct monster_stats
 
 
 
@@ -30,7 +24,7 @@ typedef struct
 
 }loot_stats;
 
-/////////Humans////////////
+/////////Humans//////////
 
 typedef struct 
 {
@@ -46,8 +40,8 @@ typedef struct
 
 typedef struct 
 {
-	int y;
-	int x;
+   int y;
+   int x;
 }human_pos;
 
 typedef struct 
@@ -58,7 +52,7 @@ typedef struct
 }human;
 
 
-/////////Monsters////////////
+/////////Monsters////////
 
 typedef struct
 {
@@ -75,7 +69,7 @@ typedef struct
    monster_stats stats;
 }monster;
 
-/////////////Boss//////////////
+/////////////Boss////////
 
 typedef struct 
 {
@@ -94,22 +88,16 @@ typedef struct
 }boss;
 
 
-
-/////////////Mmultiplayer Prototype///////////////
-// typedef struct multiPlayer
-// {
-
-   
-// }multiPlayer;
-
+void next_level(human h1, monster m, boss b, loot_stats loot, char **temp_maze, int width, bool defeated, const char *maze);
+// void next_level(human h1, monster m, boss b, loot_stats loot, char **temp_maze, int width, bool defeated, const char *maze)
 
 // gameStatsInit
 human humanInit(human h){
 
-   h.stats.health = 300;
+   h.stats.health = 25;
    h.stats.armor = 10;
    h.stats.attack = 10;
-   h.stats.accurasy = 0.9;
+   h.stats.accurasy = 0.5;
    h.stats.level = 1;
    h.stats.wins = 0;
    h.stats.loses = 0;
@@ -147,8 +135,8 @@ boss bossInit(boss b){
 //Erase previous position of da smiley
 void clearHistory(human h1, WINDOW *win){
 
-	mvwprintw(win, h1.pos.y, h1.pos.x,"  ");
-	wrefresh(win);
+   mvwprintw(win, h1.pos.y, h1.pos.x,"  ");
+   wrefresh(win);
 
 }
 
@@ -156,14 +144,14 @@ void clearHistory(human h1, WINDOW *win){
 //Clear Output Window 
 void clearWindow(WINDOW *win, int maxX){
 
-	for ( int i = 1; i < 5; ++i)
-	{
+   for ( int i = 1; i < 5; ++i)
+   {
       for (int j = 0; j < maxX; ++j)
       {
          mvwprintw(win,i,j," ");
       }
-	}
-	wrefresh(win);   
+   }
+   wrefresh(win);   
 }
 
 
@@ -188,7 +176,6 @@ int human_Attack_monster(WINDOW *win, human h,monster m, boss b){
          
          if(m.stats.health<=0){
             m.stats.health=0;
-
          }
       }
    }
@@ -334,7 +321,9 @@ int battleController(WINDOW *win, human h1, monster m, boss b, int swit){
 }
 
 
-bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score, char **temp_maze, bool thinking, bool bossEncounter, human h1, monster m, boss b, int direction, int maxX){
+
+bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,const char *maze, char **temp_maze,
+    bool thinking, bool bossEncounter, human h1, monster m, boss b, loot_stats loot, int direction, int maxX, int width){
    int ch, i,winner, wins, loses;
    ch = wgetch(window);
    char health[256];
@@ -387,17 +376,15 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score, ch
                   break;               
                }
                mvwprintw(stats, 3, 62, "0 ");      //Zero Vasilw health
-               h1.stats.wins++;
-               sprintf(score,"%d",h1.stats.wins);
-               mvwprintw(Score, 3, 5, score);  //WINS
+               // h1.stats.wins++;
+               // sprintf(score,"%d",h1.stats.wins);
+               // mvwprintw(Score, 3, 5, score);  //WINS
             }
             else{
                mvwprintw(target,2,1,"We lost bois. CY@");
                mvwprintw(window,h1.pos.y,h1.pos.x, "  ");   //Erase human
                mvwprintw(stats, 2, 9, "0 ");    //Zero humam health
-               h1.stats.loses++;
-               sprintf(score,"%d",h1.stats.loses);
-               mvwprintw(Score, 3, 9, score);  //LOSES
+               next_level(h1, m, b, loot, temp_maze, width, TRUE, maze);
             }
             wrefresh(target);
             wrefresh(stats);
@@ -417,17 +404,12 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score, ch
                temp_maze[h1.pos.y+1][h1.pos.x] = 0;
                temp_maze[h1.pos.y+1][h1.pos.x+1] = 0;
                mvwprintw(stats, 6, 62, "0 ");      //Zero Big Boss health
-               h1.stats.wins++;
-               sprintf(score,"%d",h1.stats.wins);
-               mvwprintw(Score, 3, 5, score);  //WINS
             }
             else{
                mvwprintw(target,2,1,"We lost bois. CY@");
                mvwprintw(window,h1.pos.y,h1.pos.x, "  ");   //Erase human
                mvwprintw(stats, 2, 9, "0 ");    //Zero humam health
-               h1.stats.loses++;
-               sprintf(score,"%d",h1.stats.loses);
-               mvwprintw(Score, 3, 9, score);  //LOSES
+               next_level(h1, m, b, loot, temp_maze, width, TRUE, maze);
             }
             wrefresh(target);
             wrefresh(stats);
@@ -513,8 +495,8 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score, ch
 
 
 //Main Game Controller
-void mainController(const char *maze, int width, int height,char **temp_maze, human h1,monster m, boss b, int file_num){
- 
+void mainController(const char *maze, int width, int height, char **temp_maze, human h1, monster m, boss b, loot_stats loot){
+
    // File stuff
    char buf[width*4];
    FILE *file;
@@ -531,7 +513,8 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    char attack[256];
    char accurasy[256];
    char level[256];
-   
+   char score[10];
+
    bool thinking, bossEncounter, start, end_game;
 
    initscr();  //initialize and create global vars
@@ -620,9 +603,11 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 
    //Score
    mvwprintw(Score, 0, 4, "!Score!");
-   
+   sprintf(score,"%d",h1.stats.wins);
+   mvwprintw(Score, 3, 5,score );
    mvwprintw(Score, 3, 7, "-");
-   
+   sprintf(score,"%d",h1.stats.loses);
+   mvwprintw(Score, 3, 9,score );
    mvwprintw(Score, 5, 5, "W");
    mvwprintw(Score, 5, 9, "L");
 
@@ -635,7 +620,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    
 
    //Read file function
-   file = fopen("level1.txt","r");
+   file = fopen("maze.txt","r");
    if (file) {
       line = 0;
       while (fgets(buf,1024,file)){
@@ -644,7 +629,7 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
          line++;
       }
        fclose(file);
-   }	
+   }  
 
    //Initiallize players position
    mvwprintw(Maze,h1.pos.y,h1.pos.x,":)");
@@ -655,68 +640,70 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
    while(end_game == FALSE){
       thinking = TRUE;
       bossEncounter = FALSE;
-   	keypad(Maze,TRUE);
-	   nodelay(Maze, TRUE);
-   	ch = wgetch(Maze);
-	switch (ch){
-	   case KEY_UP:
-   	   if (h1.pos.y == 0){
-   	   		mvwprintw(Output,1, 1, "Glupi kurwa, you can't go up, go down...BLYAT!");
-   	   		wrefresh(Output);
-   	   		break;
-   	   }else if ((temp_maze[h1.pos.y-1][h1.pos.x] == 0) && (temp_maze[h1.pos.y-1][h1.pos.x +1] != 1)){	
-   	   		clearHistory(h1, Maze);
-   	   		clearWindow(Output,maxX);
-   	   		mvwprintw(Maze,h1.pos.y - 1 ,h1.pos.x,":)");
-   	   		wrefresh(Maze);
-   	   		h1.pos.y = h1.pos.y - 1;
-   	   		break;
-   	   }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 1){
-   	   		clearWindow(Output,maxX);
-   	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
-   	   		wrefresh(Output);
-   	   		break;
-	   	}else if(temp_maze[h1.pos.y-1][h1.pos.x] == 3){
-   	   		clearWindow(Output,maxX);
-   	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
-   	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
-   	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
+      keypad(Maze,TRUE);
+      nodelay(Maze, TRUE);
+      ch = wgetch(Maze);
+   switch (ch){
+      case KEY_UP:
+         if (h1.pos.y == 0){
+               mvwprintw(Output,1, 1, "Glupi kurwa, you can't go up, go down...BLYAT!");
+               wrefresh(Output);
+               break;
+         }else if ((temp_maze[h1.pos.y-1][h1.pos.x] == 0) && (temp_maze[h1.pos.y-1][h1.pos.x +1] != 1)){ 
+               clearHistory(h1, Maze);
+               clearWindow(Output,maxX);
+               mvwprintw(Maze,h1.pos.y - 1 ,h1.pos.x,":)");
+               wrefresh(Maze);
+               h1.pos.y = h1.pos.y - 1;
+               break;
+         }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 1){
+               clearWindow(Output,maxX);
+               mvwprintw(Output,1, 1, "BLYAT! you Press wall");
+               wrefresh(Output);
+               break;
+         }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 3){
+               clearWindow(Output,maxX);
+               mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
+               mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
+               mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
                mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
-   	   		wrefresh(Output);
+               wrefresh(Output);
                while(thinking){
-                  thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
+                  thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
                }
                break;
-	   	}else if(temp_maze[h1.pos.y-1][h1.pos.x] == 4){
-   	   		clearWindow(Output,maxX);
-   	   		mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
-   	   		mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
-   	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");	
-   	   		wrefresh(Output);
+         }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 4){
+               clearWindow(Output,maxX);
+               mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
+               mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
+               mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");  
+               wrefresh(Output);
                while(thinking){
-                  thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
+                  thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
                }
-   	   		break;
-   	   }
-	   case KEY_DOWN:
+               break;
+         }
+      case KEY_DOWN:
          if(h1.pos.y == (height-1)){
             clearWindow(Output,maxX);
-            mvwprintw(Output,1,1,"You beat the game...advansing level in 1 second.");
+            mvwprintw(Output,1,1,"You beat the game...advansing level in 3 seconds.");
             wrefresh(Output);
-            sleep(1);
-            //Add new level function
+            sleep(3);
+            // h1.stats.wins++;
+            width+=2;
+            next_level(h1, m, b, loot, temp_maze, width, FALSE, maze);
             break;
          } 
-   	   else if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && start == TRUE){
-   	    	clearHistory(h1, Maze);
-   	    	clearWindow(Output,maxX);
-   	    	mvwprintw(Maze,0,4,"{||}");
-   	    	mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
-   	   	wrefresh(Maze);
-   	   	h1.pos.y = h1.pos.y + 1;
+         else if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && start == TRUE){
+            clearHistory(h1, Maze);
+            clearWindow(Output,maxX);
+            mvwprintw(Maze,0,4,"{||}");
+            mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
+            wrefresh(Maze);
+            h1.pos.y = h1.pos.y + 1;
             start = FALSE;
-   	   	break;
-   	    }
+            break;
+          }
           else if(temp_maze[h1.pos.y+1][h1.pos.x] == 1 || temp_maze[h1.pos.y+1][h1.pos.x +1] == 1){
             clearWindow(Output,maxX);
             mvwprintw(Output,1, 1, "BLYAT! you Press wall");
@@ -731,110 +718,110 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
             h1.pos.y = h1.pos.y + 1;
             break;
           }
-	   	else if(temp_maze[h1.pos.y+1][h1.pos.x] == 3 && temp_maze[h1.pos.y+1][h1.pos.x +1] == 3){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
-	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
-            mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
-	   		wrefresh(Output);
-            while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
-            }
-	   		break;
-	   	}
-	   	else if(temp_maze[h1.pos.y+1][h1.pos.x] == 4){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
-	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
-	   		wrefresh(Output);
-            while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
-            }
-	   		break;
-	   	}
-
-	   case KEY_RIGHT:
-   	   if (temp_maze[h1.pos.y][h1.pos.x + 3] == 0)
-   	   {
-   	   		clearHistory(h1, Maze);
-   		   	clearWindow(Output,maxX);
-   	   		mvwprintw(Maze,h1.pos.y ,h1.pos.x + 2,":)");
-   	   		wrefresh(Maze);
-   	   		h1.pos.x = h1.pos.x + 2;
-   	   		break;
-   	   }else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 1){
-   	   		clearWindow(Output,maxX);
-   	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
-   	   		wrefresh(Output);
-   	   		break;
-	   	}
-	   	else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 3){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
-	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
-            mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
-	   		wrefresh(Output);
-            while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
-            } 
-	   		break;
-	   	}
-	   	else if(temp_maze[h1.pos.y][h1.pos.x + 2] == 4){
-	   		mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
-	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
-	   		wrefresh(Output);
-            while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
-            }
-	   		break;
-	   	} 
-	   		
-	   case KEY_LEFT: 
-   	   if (temp_maze[h1.pos.y][h1.pos.x - 2] == 0)
-   	   {
-   	   		clearHistory(h1, Maze);
-   	   		clearWindow(Output,maxX);
-   	   		mvwprintw(Maze,h1.pos.y,h1.pos.x - 2,":)"); 
-   	   		wrefresh(Maze);
-   	   		h1.pos.x = h1.pos.x - 2;
-   	   		break;
-   	   }else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 1){
-   	   	clearWindow(Output,maxX);
-   	   		mvwprintw(Output,1, 1, "BLYAT! you Press wall");
-   	   		wrefresh(Output);
-   	   		break;
-	   	}
-	   	else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 3){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
+         else if(temp_maze[h1.pos.y+1][h1.pos.x] == 3 && temp_maze[h1.pos.y+1][h1.pos.x +1] == 3){
+            clearWindow(Output,maxX);
+            mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
+            mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
             mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
-	   		mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
-	   		wrefresh(Output);
+            mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
+            wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, FALSE, h1, m , b, ch, maxX);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
             }
-	   		break;
-	   	}
-	   	else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 4){
-	   		clearWindow(Output,maxX);
-	   		mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
-	   		mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
-	   		mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
-	   		wrefresh(Output);
+            break;
+         }
+         else if(temp_maze[h1.pos.y+1][h1.pos.x] == 4){
+            clearWindow(Output,maxX);
+            mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
+            mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
+            mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
+            wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, temp_maze, thinking, TRUE, h1, m , b, ch, maxX);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
             }
-	   		break;
-	   	}
-	   case KEY_END:
+            break;
+         }
+
+      case KEY_RIGHT:
+         if (temp_maze[h1.pos.y][h1.pos.x + 3] == 0)
+         {
+               clearHistory(h1, Maze);
+               clearWindow(Output,maxX);
+               mvwprintw(Maze,h1.pos.y ,h1.pos.x + 2,":)");
+               wrefresh(Maze);
+               h1.pos.x = h1.pos.x + 2;
+               break;
+         }else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 1){
+               clearWindow(Output,maxX);
+               mvwprintw(Output,1, 1, "BLYAT! you Press wall");
+               wrefresh(Output);
+               break;
+         }
+         else if(temp_maze[h1.pos.y][h1.pos.x + 3] == 3){
+            clearWindow(Output,maxX);
+            mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
+            mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
+            mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
+            mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
+            wrefresh(Output);
+            while(thinking){
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
+            } 
+            break;
+         }
+         else if(temp_maze[h1.pos.y][h1.pos.x + 2] == 4){
+            mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
+            mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
+            mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
+            wrefresh(Output);
+            while(thinking){
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
+            }
+            break;
+         } 
+            
+      case KEY_LEFT: 
+         if (temp_maze[h1.pos.y][h1.pos.x - 2] == 0)
+         {
+               clearHistory(h1, Maze);
+               clearWindow(Output,maxX);
+               mvwprintw(Maze,h1.pos.y,h1.pos.x - 2,":)"); 
+               wrefresh(Maze);
+               h1.pos.x = h1.pos.x - 2;
+               break;
+         }else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 1){
+            clearWindow(Output,maxX);
+               mvwprintw(Output,1, 1, "BLYAT! you Press wall");
+               wrefresh(Output);
+               break;
+         }
+         else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 3){
+            clearWindow(Output,maxX);
+            mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
+            mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
+            mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
+            mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
+            wrefresh(Output);
+            while(thinking){
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
+            }
+            break;
+         }
+         else if(temp_maze[h1.pos.y][h1.pos.x - 2] == 4){
+            clearWindow(Output,maxX);
+            mvwprintw(Output,1,1,"BLYAT! BLYAT! BLYAT! vrikes Final Boss.");
+            mvwprintw(Output,2,1,"Do you wish to fight and win your freedom?");
+            mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
+            wrefresh(Output);
+            while(thinking){
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
+            }
+            break;
+         }
+      case KEY_END:
          end_game = TRUE;
-		   break;		
-	  }
+         break;      
+     }
    }   
    delwin(Maze); 
    delwin(Output);                           
@@ -847,14 +834,14 @@ void mainController(const char *maze, int width, int height,char **temp_maze, hu
 
 
  // Display&save the maze.
-void saveMaze(const char *maze, int width, int height,int file_num) {
+void saveMaze(const char *maze, int width, int height) {
    int i, x, y;
 
 
    FILE *files[10];
    char filename[20];
 
-   sprintf(filename, "level%d.txt", file_num);
+   sprintf(filename, "maze.txt");
    files[i] = fopen(filename, "w");
    if (files[i] == NULL)
    {
@@ -913,7 +900,7 @@ int CarveMaze(char *maze, int width, int height, int x, int y, int monsterRestri
 
          if (flag == 0 && monsterRestriction > 0)
          {
-         	phantom_pos = y1 * width + x1;
+            phantom_pos = y1 * width + x1;
             loot_pos = y2 * width + x2;
          }
       }
@@ -950,7 +937,6 @@ void GenerateMaze(char *maze,char **temp_maze, int width, int height,human h1, i
       for(y = 1; y < height; y += 2) {       //y+=2 gia na exei duades gia ton elegxo
          for(x = 1; x < width; x += 2) {    
            monsterRestriction = CarveMaze(maze, width, height, x, y, monsterRestriction);
-           // printf("%d\n", monsterRestriction);
          }
       }
 
@@ -961,35 +947,54 @@ void GenerateMaze(char *maze,char **temp_maze, int width, int height,human h1, i
 
       for (int y = 0; y < height; y++)
       {
-      	for (int x = 0; x < width*4; x+=4)
-      	{
-      		temp_maze[y][x] = maze[y*width+step];
-      		temp_maze[y][x+1] = maze[y*width+step];
-      		temp_maze[y][x+2] = maze[y*width+step];
-      		temp_maze[y][x+3] = maze[y*width+step];
-      		step++;
-      	}
-      	step = 0;	
+         for (int x = 0; x < width*4; x+=4)
+         {
+            temp_maze[y][x] = maze[y*width+step];
+            temp_maze[y][x+1] = maze[y*width+step];
+            temp_maze[y][x+2] = maze[y*width+step];
+            temp_maze[y][x+3] = maze[y*width+step];
+            step++;
+         }
+         step = 0;   
       }
 }
 
 
-int main(int argc,char *argv[]) {
 
-   human h1;
-   human h2;
-   human h3;
+void next_level(human h1, monster m, boss b, loot_stats loot, char **temp_maze, int width, bool defeated,const char *maze){
 
-   int multiPlayer = 1;
-   if (multiPlayer == 0)
+   h1.pos.x = 5;
+   h1.pos.y = 0;
+   if (defeated == TRUE)
    {
-      h1 = humanInit(h1);
+      h1.stats.loses++;
+      mainController(maze, width, width, temp_maze, h1, m, b, loot);
    }
    else{
-      h1 = humanInit(h1);
-      h2 = humanInit(h1);
-      h3 = humanInit(h1);
+      h1.stats.wins++;
+      char *maze;
+      char **temp_maze = (char **)malloc((width*4)*sizeof(char*));
+      for (int i = 0; i < width; ++i)
+      {
+            temp_maze[i] = (char *)malloc((width*4)*sizeof(char));    
+      }
+    
+
+      maze = (char*)malloc(width * width * sizeof(char));
+
+      GenerateMaze(maze,temp_maze,width,width,h1,1);
+      saveMaze(maze,width,width);
+      mainController(maze, width, width, temp_maze, h1, m, b, loot);
    }
+}
+
+
+int main(void) {
+   human h1;
+   h1 = humanInit(h1);
+
+   loot_stats loot;
+   loot.points = 50;
  
    monster m;
    m = monsterInit(m);
@@ -997,14 +1002,11 @@ int main(int argc,char *argv[]) {
    boss b;
    b = bossInit(b);
 
-
-
-   
-
    int width, height;
-   int file_num=1;      
+   // int file_num=1;      
+   int monsters = 1;
    char *maze;
-   int monsters = 3;
+
    
 
    //Dynamic part
@@ -1012,35 +1014,23 @@ int main(int argc,char *argv[]) {
    
    // for (int i = 0; i < height; ++i)
    // {
-   // 		temp_maze[i] = (char *)malloc((width*4)*sizeof(char));
+   //       temp_maze[i] = (char *)malloc((width*4)*sizeof(char));
    // }
 
-
-   //Hardcoded part for j  -   legal values 7 9 11 13 15 17 19 21
-   int j = 7; 
+   int j = 7;  //initial size
    char **temp_maze = (char **)malloc((j*4)*sizeof(char*));
    for (int i = 0; i < j; ++i)
    {
-   		temp_maze[i] = (char *)malloc((j*4)*sizeof(char));    
+         temp_maze[i] = (char *)malloc((j*4)*sizeof(char));    
    }
 
-      
-   // for (int i = 7; i < 15; i+=2)  
-   // {  
-      
-      maze = (char*)malloc(j * j * sizeof(char));
-      if(maze == NULL) {
-         printf("error: not enough memory\n");
-         exit(EXIT_FAILURE);
-      }
-      GenerateMaze(maze,temp_maze,j,j,h2,monsters);
-      saveMaze(maze,j,j,file_num);
-      printf("\n");
-      mainController(maze, j, j, temp_maze, h1, m, b, file_num);
+   maze = (char*)malloc(j * j * sizeof(char));
+   if(maze == NULL) {
+      printf("error: not enough memory\n");
+      exit(EXIT_FAILURE);
+   }
+   GenerateMaze(maze,temp_maze,j,j,h1,monsters);
+   saveMaze(maze,j,j);
+   mainController(maze, j, j, temp_maze, h1, m, b, loot);
 
-      free(maze);
-      free(temp_maze);
-      file_num++;
-   // }
-   return 0;
 }
