@@ -31,7 +31,7 @@ typedef struct
    int health;
    int armor;
    int attack;
-   float accurasy;
+   float accuracy;
    int level;
    int wins;
    int loses;
@@ -59,7 +59,7 @@ typedef struct
    int health;
    int armor;
    int attack;
-   float accurasy;
+   float accuracy;
    int level;
 
 }monster_stats;
@@ -76,7 +76,7 @@ typedef struct
    int health;
    int armor;
    int attack;
-   float accurasy;
+   float accuracy;
    int level;
    
 }boss_stats;
@@ -94,9 +94,9 @@ void next_level(human h1, monster m, boss b, loot_stats* loot, char **temp_maze,
 human humanInit(human h){
 
    h.stats.health = 0;
-   h.stats.armor = 0;
+   // h.stats.armor = 0;
    h.stats.attack = 0;
-   h.stats.accurasy = 0.5;
+   h.stats.accuracy = 0.5;
    h.stats.level = 1;
    h.stats.wins = 0;
    h.stats.loses = 0;
@@ -110,7 +110,7 @@ monster monsterInit(monster m){
    m.stats.health = 25;
    m.stats.armor = 5;
    m.stats.attack = 15;
-   m.stats.accurasy = 0.2;
+   m.stats.accuracy = 0.2;
    m.stats.level = 1;
 
    return m;
@@ -121,13 +121,47 @@ boss bossInit(boss b){
    b.stats.health = 30;
    b.stats.armor = 5;
    b.stats.attack = 15;
-   b.stats.accurasy = 0.3;
+   b.stats.accuracy = 0.3;
    b.stats.level = 1;
 
    return b;
 }
 
+void upgradeEnemies(monster* m,boss* b,int lvl)
+{  
+  
+   int i,monsterRestriction;
+   
+   //fur the vasilw
+   m->stats.health = 25;
+   m->stats.armor = 5;
+   m->stats.attack = 15;
+   m->stats.accuracy = 0.2;
+   m->stats.level = 1; 
 
+   //fur the boss
+   b->stats.health = 30;
+   b->stats.armor = 5;
+   b->stats.attack = 15;
+   b->stats.accuracy = 0.3;
+   b->stats.level = 1;
+        
+  for(i=1;i<=lvl;i++)
+  {
+      //fur the vasilw   
+      m->stats.health += 5;
+      m->stats.armor += 5;
+      m->stats.attack += 5;
+      m->stats.accuracy += 0.1;
+
+      //fur the boss
+      b->stats.health += 10;
+      b->stats.armor += 10;
+      b->stats.attack += 10;
+      b->stats.accuracy += 0.1;
+
+ }
+}
 
 
 
@@ -161,7 +195,7 @@ int human_Attack_monster(WINDOW *win, human h,monster m, boss b){
    float hit = rnd/100.0;
    char health[256];      
    damage = h.stats.attack - m.stats.armor;
-   if(hit <= h.stats.accurasy){
+   if(hit <= h.stats.accuracy){
 
       if(damage >=0){  
           
@@ -188,7 +222,7 @@ int monster_Attack_human(WINDOW *win, human h1,monster m, boss b){
    int rnd = rand()%100;      
    float hit = rnd/100.0;
    damage = m.stats.attack - h1.stats.armor;  //damage = 5
-   if(hit <= m.stats.accurasy){
+   if(hit <= m.stats.accuracy){
       if(damage >=0){
          h1.stats.health = h1.stats.health  - damage;
          sprintf(health,"%d",h1.stats.health);
@@ -217,7 +251,7 @@ int human_Attack_boss(WINDOW *win, human h,monster m, boss b){
    
    
 
-   if(hit <= h.stats.accurasy){
+   if(hit <= h.stats.accuracy){
 
       if(h.stats.attack - b.stats.armor >=0){  
           
@@ -247,7 +281,7 @@ int boss_Attack_human(WINDOW *win, human h1,monster m, boss b){
    float hit = rnd/100.0;
    damage = b.stats.attack - h1.stats.armor;  //damage = 5
    
-   if(hit <= b.stats.accurasy){
+   if(hit <= b.stats.accuracy){
       if(damage >=0){
          h1.stats.health = h1.stats.health  - damage;
          sprintf(health,"%d",h1.stats.health);
@@ -334,7 +368,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
 
    if (start_game == TRUE)
    {
-      mvwprintw(target,1,1,"Welcome to the game i lost one semester worth of time developing");   
+      mvwprintw(target,1,1,"Welcome to the game we lost one semester worth of time developing");   
       mvwprintw(target,2,1,"Press 'y' if you agree that diplomas are overestimated and piracy pays.");   
       wrefresh(target);
       loot->points = 50;
@@ -361,7 +395,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                mvwprintw(target,2,1,"Press '1' to upgrade Health:");  
                mvwprintw(target,3,1,"Press '2' to upgrade Armor:");  
                mvwprintw(target,4,1,"Press '3' to upgrade Attack:");  
-               mvwprintw(target,5,1,"Press '4' to upgrade Accurasy:");
+               mvwprintw(target,5,1,"Press '4' to upgrade Accuracy:");
                mvwprintw(target,6,1,"Press '5' to stop assigning points.");
                mvwprintw(stats, 7, 7, "  ");
                mvwprintw(stats, 7, 7, "%d",loot->points);
@@ -487,12 +521,12 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                      wscanw(target,"%f",&val);
                      if (val <= loot->points)
                      {
-                        if ((h1->stats.accurasy + val) <= 1.0)
+                        if ((h1->stats.accuracy + val) <= 1.0)
                         {
-                           h1->stats.accurasy += val;
+                           h1->stats.accuracy += val;
                            loot->points -= val*10;
                            mvwprintw(stats,5,11,"   ");
-                           mvwprintw(stats,5,11,"%g",h1->stats.accurasy);
+                           mvwprintw(stats,5,11,"%g",h1->stats.accuracy);
                            mvwprintw(stats, 7, 7, "  ");
                            mvwprintw(stats, 7, 7, "%d",loot->points);
                            wrefresh(stats);
@@ -660,7 +694,6 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,con
                   }
                   break;               
                }
-               mvwprintw(stats, 3, 62, "0 ");      //Zero Vasilw health
             }
             else{
                mvwprintw(target,2,1,"We lost bois. CY@");
@@ -690,7 +723,6 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,con
                mvwprintw(window,h1.pos.y+1,h1.pos.x, "  "); //Erase boss
                temp_maze[h1.pos.y+1][h1.pos.x] = 0;
                temp_maze[h1.pos.y+1][h1.pos.x+1] = 0;
-               mvwprintw(stats, 6, 62, "0 ");      //Zero Big Boss health
             }
             else{
                mvwprintw(target,2,1,"We lost bois. CY@");
@@ -799,7 +831,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    char health[256];    
    char armor[256];
    char attack[256];
-   char accurasy[256];
+   char accuracy[256];
    char level[256];
    char score[10];
 
@@ -827,8 +859,8 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    mvwprintw(Stats, 3, 8,"%d",h1.stats.armor);
    mvwprintw(Stats, 4, 1, "Attack:");
    mvwprintw(Stats, 4, 9,"%d",h1.stats.attack);
-   mvwprintw(Stats, 5, 1, "Accurasy:");
-   mvwprintw(Stats, 5, 11,"%g",h1.stats.accurasy);
+   mvwprintw(Stats, 5, 1, "Accuracy:");
+   mvwprintw(Stats, 5, 11,"%g",h1.stats.accuracy);
    mvwprintw(Stats, 6, 1, "Level:");
    mvwprintw(Stats, 6, 8, "%d",h1.stats.level);
    mvwprintw(Stats, 7, 1, "Loot:");
@@ -839,7 +871,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    // sprintf(health,"%d",p2.stats.health);
    // sprintf(armor,"%d",p2.stats.armor);
    // sprintf(attack,"%d",p2.stats.attack);
-   // sprintf(accurasy,"%f",p2.stats.accurasy);
+   // sprintf(accuracy,"%f",p2.stats.accuracy);
    
    // mvwprintw(Stats, 0, 16, "Player2:");
    // mvwprintw(Stats, 2, 17, "Health:");
@@ -848,8 +880,8 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    // mvwprintw(Stats, 3, 24, armor);
    // mvwprintw(Stats, 4, 17, "Attack:");
    // mvwprintw(Stats, 4, 25, attack);
-   // mvwprintw(Stats, 5, 17, "Accurasy:");
-   // mvwprintw(Stats, 5, 27, accurasy);
+   // mvwprintw(Stats, 5, 17, "Accuracy:");
+   // mvwprintw(Stats, 5, 27, accuracy);
    // mvwprintw(Stats, 6, 17, "Level:");
    // mvwprintw(Stats, 6, 24, level);
 
@@ -858,7 +890,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    // sprintf(health,"%d",p3.stats.health);
    // sprintf(armor,"%d",p3.stats.armor);
    // sprintf(attack,"%d",p3.stats.attack);
-   // sprintf(accurasy,"%f",p3.stats.accurasy);
+   // sprintf(accuracy,"%f",p3.stats.accuracy);
    
    // mvwprintw(Stats, 0, 33, "Player3:");
    // mvwprintw(Stats, 2, 34, "Health:");
@@ -867,25 +899,21 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    // mvwprintw(Stats, 3, 41, armor);
    // mvwprintw(Stats, 4, 34, "Attack:");
    // mvwprintw(Stats, 4, 42, attack);
-   // mvwprintw(Stats, 5, 34, "Accurasy:");
-   // mvwprintw(Stats, 5, 44, accurasy);
+   // mvwprintw(Stats, 5, 34, "Accuracy:");
+   // mvwprintw(Stats, 5, 44, accuracy);
    // mvwprintw(Stats, 6, 34, "Level:");
    // mvwprintw(Stats, 6, 41, level);
 
 
    //Vasilw
-   mvwprintw(Stats, 2, 53, "Vasilw:");
-   sprintf(health,"%d",m.stats.health);
-   mvwprintw(Stats, 3, 54, "Health:");
-   mvwprintw(Stats, 3, 62, health);
-
+   mvwprintw(Stats, 1, 53, "Vasilw:");
+   mvwprintw(Stats, 2, 54, "H: %d  At: %d", m.stats.health, m.stats.attack);
+   mvwprintw(Stats, 3, 54, "Ar: %d  Ac: %g", m.stats.armor, m.stats.accuracy);
 
    //Final Boss
    mvwprintw(Stats, 5, 53, "Big Boss:");
-   sprintf(health,"%d",b.stats.health);
-   mvwprintw(Stats, 6, 54, "Health:");
-   mvwprintw(Stats, 6, 62, health);
-
+   mvwprintw(Stats, 6, 54, "H: %d  At: %d", b.stats.health, b.stats.attack);
+   mvwprintw(Stats, 7, 54, "Ar: %d  Ac: %g", b.stats.armor, b.stats.accuracy);
 
    //Score
    mvwprintw(Score, 0, 4, "!Score!");
@@ -1292,6 +1320,7 @@ void GenerateMaze(char *maze,char **temp_maze, int width, int height,human h1, i
 
 void next_level(human h1, monster m, boss b, loot_stats* loot, char **temp_maze, int width, bool defeated,const char *maze){
 
+   int monsters;
    h1.pos.x = 5;
    h1.pos.y = 0;
    if (defeated == TRUE)
@@ -1310,10 +1339,13 @@ void next_level(human h1, monster m, boss b, loot_stats* loot, char **temp_maze,
             temp_maze[i] = (char *)malloc((width*4)*sizeof(char));    
       }
     
+      monsters = h1.stats.level;
+
+      upgradeEnemies(&m, &b, monsters-1);
 
       maze = (char*)malloc(width * width * sizeof(char));
 
-      GenerateMaze(maze,temp_maze,width,width,h1,1);
+      GenerateMaze(maze,temp_maze,width,width,h1,monsters);
       saveMaze(maze,width,width);
       mainController(maze, width, width, temp_maze, h1, m, b, loot, FALSE);
    }
