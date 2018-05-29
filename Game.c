@@ -14,7 +14,6 @@ void login();
 void Setup();
 
 
-enum ma {W,A,S,D,X,Z};
 
 int health,armor,attack,accuracy;
 
