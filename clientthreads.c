@@ -73,7 +73,7 @@ int main(){
   pthread_t tid[3];
   bitch b1;
   b1.x = 6;
-  while(i<3)
+  while(i < 3)
   {
   	ret = pthread_create(&tid[i], NULL, clientThread, (void *)&b1);
     if( ret != 0 )
