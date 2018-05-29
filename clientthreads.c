@@ -82,7 +82,7 @@ int main(){
   }
   sleep(3);
   i = 0;
-  while(i<3)
+  while(i < 3)
   {
      pthread_join(tid[i++],NULL);
      printf("%d:\n",i);
