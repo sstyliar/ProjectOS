@@ -11,18 +11,6 @@
 // #include <pthread.h>
 
 
-
-
-//temp maze and regular maze transition through sockets
-
-
-
-
-
-
-
-
-
 #define SIZE 1024
 
 /////////Loot////////////
@@ -59,7 +47,8 @@ typedef struct
 {  
    human_stats stats;
    human_pos pos;
-        
+   loot_stats loot;
+
 }human;
 
 
@@ -99,7 +88,7 @@ typedef struct
 }boss;
 
 
-void next_level(human h1, monster m, boss b, loot_stats* loot, char **temp_maze, int width, bool defeated, const char *maze);
+void next_level(human h1, monster m, boss b, char **temp_maze, int width, bool defeated, const char *maze, int sock);
 
 // gameStatsInit
 human humanInit(human h){
@@ -115,6 +104,7 @@ human humanInit(human h){
    h.stats.loses = 0;
    h.pos.x = 5;
    h.pos.y = 0;
+   h.loot.points = 0;
    return h;
 }
 
@@ -141,7 +131,7 @@ boss bossInit(boss b){
 }
 
 //SERVER SIDE
-void upgradeEnemies(monster* m,boss* b,int lvl)
+void upgradeEnemies(monster* m, boss* b, int lvl)
 {  
   
    int i,monsterRestriction;
@@ -175,6 +165,48 @@ void upgradeEnemies(monster* m,boss* b,int lvl)
       b->stats.accuracy += 0.1;
 
  }
+}
+
+//Send reguest to the server to save players stats
+void save_stats(human *h1, int sock){
+   human h2;
+   h2.stats = h1->stats;
+   h2.loot = h1->loot;
+   strcpy(h2.stats.msg,"save_stats");
+   send(sock, &h2, sizeof(human),0);
+}
+
+
+void createTemp_maze(char *maze, char **temp_maze, int width){
+   int x, y, step = 0;
+   for (int y = 0; y < width; y++)
+   {
+      for (int x = 0; x < width*4; x+=4)
+      {
+         temp_maze[y][x] = maze[y*width+step];
+         temp_maze[y][x+1] = maze[y*width+step];
+         temp_maze[y][x+2] = maze[y*width+step];
+         temp_maze[y][x+3] = maze[y*width+step];
+         step++;
+      }
+      step = 0;   
+   }
+
+}
+
+//Get maze from server.
+void getMaze(human h1, char *maze, int j, int sock){
+
+      strcpy(h1.stats.msg,"create_maze");
+      send(sock,&h1, sizeof(human),0);
+      recv(sock,maze, j*j,0);
+      if (maze[0] == -1 || maze[0] == 0)
+      {
+         printf("Error: Client failed to receive array from server.\n");
+         strcpy(h1.stats.msg,"exit");
+         send(sock,&h1, sizeof(human),0);
+         exit(0);
+      }
 }
 
 
@@ -234,7 +266,7 @@ int monster_Attack_human(WINDOW *win, human h1,monster m, boss b){
    char health[256];                               
    int rnd = rand()%100;      
    float hit = rnd/100.0;
-   damage = m.stats.attack - h1.stats.armor;  //damage = 5
+   damage = m.stats.attack - h1.stats.armor;  
    if(hit <= m.stats.accuracy){
       if(damage >=0){
          h1.stats.health = h1.stats.health  - damage;
@@ -317,19 +349,15 @@ int boss_Attack_human(WINDOW *win, human h1,monster m, boss b){
 //CLIENT SIDE
 int battleController(WINDOW *win, human h1, monster m, boss b, int swit){
    int winner;
-   // char health[256];
    bool fighting = TRUE;
-
    switch(swit){
       case 1:
          do{
                time_t t;
                srand((unsigned) time(&t));
-
                m.stats.health = human_Attack_monster(win,h1,m,b);     
                h1.stats.health = monster_Attack_human(win, h1,m,b);
                sleep(1);
-
                if(h1.stats.health==0 || m.stats.health==0){
                   if(m.stats.health == 0){
                      winner = 1;
@@ -340,18 +368,16 @@ int battleController(WINDOW *win, human h1, monster m, boss b, int swit){
                      fighting = FALSE;       
                   }
                }
-
-            }while(fighting == TRUE);
+            }
+            while(fighting == TRUE);
             break;
       case 2:
          do{
             time_t t;
             srand((unsigned) time(&t));
-
             b.stats.health = human_Attack_boss(win,h1,m,b);     
             h1.stats.health = boss_Attack_human(win,h1,m,b);
             sleep(1);
-
             if(h1.stats.health==0 || b.stats.health==0){
                if(b.stats.health == 0){
                   winner = 1;
@@ -362,18 +388,17 @@ int battleController(WINDOW *win, human h1, monster m, boss b, int swit){
                   fighting = FALSE;       
                }
             }
-
-         }while(fighting == TRUE);
+         }
+         while(fighting == TRUE);
          break;
    }
-   
    return winner;
 }
 
-//Points Assigment Function - CLIENT SIDE
-bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maze, human* h1, loot_stats* loot
-      ,int direction, int maxX, int width, bool start_game, bool nextLevel){
+//Points Assigment Function 
+bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maze, human* h1, int direction, int maxX, int width, bool start_game, bool nextLevel, int sock){
    
+   human h2;
    char ch;
    float val;
    int i;
@@ -384,17 +409,16 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
 
    if (start_game == TRUE)
    {
-      mvwprintw(target,1,1,"Welcome to the game we lost one semester worth of time developing");   
-      mvwprintw(target,2,1,"Press 'y' if you agree that diplomas are overestimated and piracy pays.");   
+      mvwprintw(target,1,1,"Let's begin...please press 'y'");   
       wrefresh(target);
-      loot->points = 50;
+      h1->loot.points = 50;
    }
    else{
       ch = 'y';
    }
    
    mvwprintw(stats, 7, 7, "  ");
-   mvwprintw(stats, 7, 7, "%d",loot->points);
+   mvwprintw(stats, 7, 7, "%d",h1->loot.points);
    wrefresh(stats);
    
    switch(ch)
@@ -402,19 +426,19 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
       case 'y':  
             if (start_game == FALSE && nextLevel == FALSE)
             {
-               loot->points += 20;               
+               h1->loot.points += 20;               
             }
             
-            while(thinking && loot->points !=0){
+            while(thinking && h1->loot.points !=0){
                clearWindow(target, maxX);
-               mvwprintw(target,1,1,"Remaining points : %d", loot->points);   
+               mvwprintw(target,1,1,"Remaining points : %d", h1->loot.points);   
                mvwprintw(target,2,1,"Press '1' to upgrade Health:");  
                mvwprintw(target,3,1,"Press '2' to upgrade Armor:");  
                mvwprintw(target,4,1,"Press '3' to upgrade Attack:");  
                mvwprintw(target,5,1,"Press '4' to upgrade Accuracy:");
                mvwprintw(target,6,1,"Press '5' to stop assigning points.");
                mvwprintw(stats, 7, 7, "  ");
-               mvwprintw(stats, 7, 7, "%d",loot->points);
+               mvwprintw(stats, 7, 7, "%d",h1->loot.points);
                wrefresh(target);
                wrefresh(stats);
             
@@ -427,18 +451,18 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                      wmove(target,2,30);  
                      wrefresh(target);
                      wscanw(target,"%f",&val);
-                     if (val <= loot->points)
+                     if (val <= h1->loot.points)
                      {
                         h1->stats.health += val;
-                        loot->points -= val;
+                        h1->loot.points -= val;
                         mvwprintw(stats,2,9,"%d",h1->stats.health);
                         mvwprintw(stats, 7, 7, "  ");
-                        mvwprintw(stats, 7, 7, "%d",loot->points);
+                        mvwprintw(stats, 7, 7, "%d",h1->loot.points);
                         wrefresh(stats);
                         noecho();
                         curs_set(0);
                      }
-                     else if ((val > loot->points) && (loot->points != 0))
+                     else if ((val > h1->loot.points) && (h1->loot.points != 0))
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"Now now, lets not exaggerate...try again.");   
@@ -447,7 +471,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                         curs_set(0);
                         sleep(3);
                      }
-                     else if(loot->points == 0)
+                     else if(h1->loot.points == 0)
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"You run out of points...");   
@@ -463,18 +487,18 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                      wmove(target,3,29);  
                      wrefresh(target);
                      wscanw(target,"%f",&val);
-                     if (val <= loot->points)
+                     if (val <= h1->loot.points)
                      {
                         h1->stats.armor += val;
-                        loot->points -= val;
+                        h1->loot.points -= val;
                         mvwprintw(stats,3,8,"%d",h1->stats.armor);
                         mvwprintw(stats, 7, 7, "  ");
-                        mvwprintw(stats, 7, 7, "%d",loot->points);
+                        mvwprintw(stats, 7, 7, "%d",h1->loot.points);
                         wrefresh(stats);
                         noecho();
                         curs_set(0);
                      }
-                     else if ((val > loot->points) && (loot->points != 0))
+                     else if ((val > h1->loot.points) && (h1->loot.points != 0))
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"Now now, lets not exaggerate...try again.");   
@@ -483,7 +507,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                         curs_set(0);
                         sleep(3);
                      }
-                     else if(loot->points == 0)
+                     else if(h1->loot.points == 0)
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"You run out of points...");   
@@ -499,18 +523,18 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                      wmove(target,4,30);  
                      wrefresh(target);
                      wscanw(target,"%f",&val);
-                     if (val <= loot->points)
+                     if (val <= h1->loot.points)
                      {
                         h1->stats.attack += val;
-                        loot->points -= val;
+                        h1->loot.points -= val;
                         mvwprintw(stats,4,9,"%d",h1->stats.attack);
                         mvwprintw(stats, 7, 7, "  ");
-                        mvwprintw(stats, 7, 7, "%d",loot->points);
+                        mvwprintw(stats, 7, 7, "%d",h1->loot.points);
                         wrefresh(stats);
                         noecho();
                         curs_set(0);
                      }
-                     else if ((val > loot->points) && (loot->points != 0))
+                     else if ((val > h1->loot.points) && (h1->loot.points != 0))
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"Now now, lets not exaggerate...try again.");   
@@ -519,7 +543,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                         curs_set(0);
                         sleep(3);
                      }
-                     else if(loot->points == 0)
+                     else if(h1->loot.points == 0)
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"You run out of points...");   
@@ -535,16 +559,16 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                      wmove(target,5,32);  
                      wrefresh(target);
                      wscanw(target,"%f",&val);
-                     if (val <= loot->points)
+                     if (val <= h1->loot.points)
                      {
                         if ((h1->stats.accuracy + val) <= 1.0)
                         {
                            h1->stats.accuracy += val;
-                           loot->points -= val*10;
+                           h1->loot.points -= val*10;
                            mvwprintw(stats,5,11,"   ");
                            mvwprintw(stats,5,11,"%g",h1->stats.accuracy);
                            mvwprintw(stats, 7, 7, "  ");
-                           mvwprintw(stats, 7, 7, "%d",loot->points);
+                           mvwprintw(stats, 7, 7, "%d",h1->loot.points);
                            wrefresh(stats);
                         }
                         else{
@@ -557,7 +581,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                         noecho();
                         curs_set(0);
                      }
-                     else if ((val > loot->points) && (loot->points != 0))
+                     else if ((val > h1->loot.points) && (h1->loot.points != 0))
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"Now now, lets not exaggerate...try again.");   
@@ -566,7 +590,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                         curs_set(0);
                         sleep(3);
                      }
-                     else if(loot->points == 0)
+                     else if(h1->loot.points == 0)
                      {
                         clearWindow(target,maxX);
                         mvwprintw(target,1,1,"You run out of points...");   
@@ -585,7 +609,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
                   
                }
             }
-            // save_stats(h1);      //SEND h1 TO THE SERVER TO BE SAVED BY saveStats()
+            save_stats(h1, sock);
             thinking = FALSE;             //Maybe unnecessary.
             clearWindow(target,maxX);
             switch(direction){
@@ -652,7 +676,7 @@ bool assignPoints(WINDOW *window, WINDOW *target, WINDOW *stats, char **temp_maz
 
 //CLIENT SIDE
 bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,const char *maze, char **temp_maze,
-    bool thinking, bool bossEncounter, human h1, monster m, boss b, loot_stats* loot, int direction, int maxX, int width){
+    bool thinking, bool bossEncounter, human h1, monster m, boss b, int direction, int maxX, int width, int sock){
    
    int ch, i,winner, wins, loses;
    ch = wgetch(window);
@@ -675,9 +699,9 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,con
             {
                mvwprintw(target,2,1,"Winner was declared the human pizdek."); 
                mvwprintw(target, 3, 1, "The path is free you western spy.");
-               loot->points += 10;
+               h1.loot.points += 10;
                mvwprintw(stats, 7, 7, "  "); 
-               mvwprintw(stats, 7, 7, "%d",loot->points); 
+               mvwprintw(stats, 7, 7, "%d",h1.loot.points); 
                switch(direction){
                case KEY_UP:
                   mvwprintw(window, h1.pos.y-1, h1.pos.x, "  ");  //Vasilw                 
@@ -715,7 +739,7 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,con
                mvwprintw(window,h1.pos.y,h1.pos.x, "  ");   //Erase human
                mvwprintw(stats, 2, 9, "0 ");    //Zero humam health
                sleep(3);
-               next_level(h1, m, b, loot, temp_maze, width, TRUE, maze);
+               next_level(h1, m, b, temp_maze, width, TRUE, maze, sock);
             }
             wrefresh(target);
             wrefresh(stats);
@@ -731,9 +755,9 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,con
             {
                mvwprintw(target,2,1,"Winner was declared the human pizdek."); 
                mvwprintw(target, 3, 1, "The path is free you western spy.");
-               loot->points += 20;
+               h1.loot.points += 20;
                mvwprintw(stats, 7, 7, "  "); 
-               mvwprintw(stats, 7, 7, "%d",loot->points); 
+               mvwprintw(stats, 7, 7, "%d",h1.loot.points); 
                mvwprintw(window,h1.pos.y+1,h1.pos.x, "  "); //Erase boss
                temp_maze[h1.pos.y+1][h1.pos.x] = 0;
                temp_maze[h1.pos.y+1][h1.pos.x+1] = 0;
@@ -745,7 +769,7 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,con
                mvwprintw(stats, 2, 9, "0 ");    //Zero humam health
                wrefresh(target);
                sleep(3);
-               next_level(h1, m, b, loot, temp_maze, width, TRUE, maze);
+               next_level(h1, m, b, temp_maze, width, TRUE, maze, sock);
             }
             wrefresh(target);
             wrefresh(stats);
@@ -828,17 +852,18 @@ bool userControl(WINDOW *window, WINDOW *target, WINDOW *stats,WINDOW *Score,con
    return thinking;
 }
 
-//Main Game Controller  - CLIENT SIDE
-void mainController(const char *maze, int width, int height, char **temp_maze, human h1, monster m, boss b, loot_stats* loot,
-                     bool start_game, bool loaded){
+//Main Game Controller
+void mainController(const char *maze, int width, int height, char **temp_maze, human h1, monster m, boss b,
+                        bool start_game, bool loaded, int sock){
 
    // File stuff
    char buf[width*4];
    FILE *file;
    // size_t nread;
 
+   human h2;
    int score_size = 9;
-   int maxX, maxY, dx, dy, ch, response, line;
+   int maxX, maxY, step, ch, response, line, i, j;
    int x = 0, y = 0;   
 
    char health[256];    
@@ -856,16 +881,15 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    curs_set(FALSE);  //Makes cursor not visible
    getmaxyx(stdscr, maxY, maxX); //get command window size
    
-   //New window
+   //New windows Declarations
    WINDOW *Maze = newwin(maxY - score_size*2, maxX, 0, 0);  
    WINDOW *Output = newwin(maxY - score_size, maxX, maxY - score_size*2, 0); 
    WINDOW *Stats = newwin(score_size, maxX, maxY - score_size, 0); 
    WINDOW *Score = newwin(score_size, maxX-13, maxY - score_size, maxX-13); 
-   
+
    mvwprintw(Output,0, 0, "Game says:");
    
-
- //Player1 stats
+   //Player stats
    mvwprintw(Stats, 0, 0, h1.stats.username);
    mvwprintw(Stats, 2, 1, "Health:");
    mvwprintw(Stats, 2, 9,"%d",h1.stats.health);
@@ -879,8 +903,8 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    mvwprintw(Stats, 6, 8, "%d",h1.stats.level);
    mvwprintw(Stats, 7, 1, "Loot:");
    mvwprintw(Stats, 7, 7, "  ");
-   mvwprintw(Stats, 7, 7, "%d",loot->points);
-
+   mvwprintw(Stats, 7, 7, "%d",h1.loot.points);
+  
    //Vasilw
    mvwprintw(Stats, 1, 53, "Vasilw:");
    mvwprintw(Stats, 2, 54, "H: %d  At: %d", m.stats.health, m.stats.attack);
@@ -911,22 +935,30 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    if (!loaded)
    {
       while(thinking){
-         thinking = assignPoints(Maze,Output,Stats, temp_maze, &h1, loot, ch, maxX, width, start_game,TRUE);
+         thinking = assignPoints(Maze,Output,Stats, temp_maze, &h1, ch, maxX, width, start_game,TRUE,sock);
       }
    }
-   
-   
-   //Read file function
-   file = fopen("maze","r");
-   if (file) {
-      line = 0;
-      while (fgets(buf,1024,file)){
-         mvwprintw(Maze,line,0,buf);
-         wrefresh(Maze);
-         line++;
+
+
+   // maze -> array, Maze -> window
+   step = 0;
+   for (i = 0; i < width; ++i)
+   {
+      for (j = 0; j < width; j++)
+      {
+         switch(maze[i * width + j]) {
+            case 1: mvwprintw(Maze,i,j+step,"{||}"); break;   //Wall
+            case 3: mvwprintw(Maze,i,j+step," :/ "); break;   //Monster
+            case 4: mvwprintw(Maze,i,j+step," :# "); break;   //Boss
+            case 5: mvwprintw(Maze,i,j+step," $$ "); break;   //Loot
+            default: mvwprintw(Maze,i,j+step,"    "); break;  //Empty space
+         }
+         step +=3;
       }
-       fclose(file);
-   }  
+      step = 0;
+   }
+   wrefresh(Maze);
+
 
    //Initiallize players position
    mvwprintw(Maze,h1.pos.y,h1.pos.x,":)");
@@ -959,13 +991,13 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
                break;
          }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 3){
                clearWindow(Output,maxX);
-               mvwprintw(Output,1,1,"BLYAT! you found rare monster.");
+               mvwprintw(Output,1,1,"BLYAT! you found rare monster Vasilw.");
                mvwprintw(Output,2,1,"Do you wish to fight and be rewarded upon victory?");
                mvwprintw(Output,3,1,"Press 'y' to start fighting or 'n' to decline or 'r' to run.");
                mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
                wrefresh(Output);
                while(thinking){
-                  thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
+                  thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, ch, maxX, width,sock);
                }
                break;
          }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 4){
@@ -975,7 +1007,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
                mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");  
                wrefresh(Output);
                while(thinking){
-                  thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
+                  thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, ch, maxX, width,sock);
                }
                break;
          }else if(temp_maze[h1.pos.y-1][h1.pos.x] == 5){                                                 //Points Assignment
@@ -985,7 +1017,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,3,1,"Press 'y' to take and assign the points or 'r' to walk away.");  
             wrefresh(Output);
             while(thinking){
-               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, loot, ch, maxX, width, FALSE, FALSE);
+               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, ch, maxX, width, FALSE, FALSE,sock);
             }
             break;
          }
@@ -996,13 +1028,14 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             wrefresh(Output);
             sleep(3);
             width+=2;
-            next_level(h1, m, b, loot, temp_maze, width, FALSE, maze);
+            next_level(h1, m, b, temp_maze, width, FALSE, maze, sock);
             break;
          } 
          else if (temp_maze[h1.pos.y+1][h1.pos.x] == 0 && start == TRUE){
             clearHistory(h1, Maze);
             clearWindow(Output,maxX);
             mvwprintw(Maze,0,4,"{||}");
+            temp_maze[h1.pos.y][h1.pos.x] = 1;
             mvwprintw(Maze,h1.pos.y + 1,h1.pos.x,":)");
             wrefresh(Maze);
             h1.pos.y = h1.pos.y + 1;
@@ -1031,7 +1064,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
             wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, ch, maxX, width,sock);
             }
             break;
          }
@@ -1042,7 +1075,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
             wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, ch, maxX, width,sock);
             }
             break;
          }else if(temp_maze[h1.pos.y+1][h1.pos.x] == 5){                                                 //Points Assignment
@@ -1052,7 +1085,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,3,1,"Press 'y' to take and assign the points or 'r' to walk away.");  
             wrefresh(Output);
             while(thinking){
-               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, loot, ch, maxX, width, FALSE, FALSE);
+               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, ch, maxX, width, FALSE, FALSE,sock);
             }
             break;                                                 
          }                                                        
@@ -1079,7 +1112,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
             wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, ch, maxX, width,sock);
             } 
             break;
          }
@@ -1089,7 +1122,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
             wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, ch, maxX, width,sock);
             }
             break;
          }else if(temp_maze[h1.pos.y][h1.pos.x+3] == 5){                                                 //Points Assignment
@@ -1099,7 +1132,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,3,1,"Press 'y' to tale and assign the points or 'r' to walk away.");  
             wrefresh(Output);
             while(thinking){
-               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, loot, ch, maxX, width, FALSE, FALSE);
+               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, ch, maxX, width, FALSE, FALSE,sock);
             }
             break;
          }  
@@ -1126,7 +1159,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,4,1,"If you decline Vasilw will leave with the money.");
             wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, loot, ch, maxX, width);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, FALSE, h1, m , b, ch, maxX, width, sock);
             }
             break;
          }
@@ -1137,7 +1170,7 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,3,1,"Press 'y' to start fighting or 'r' to walk away.");
             wrefresh(Output);
             while(thinking){
-               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, loot, ch, maxX, width);
+               thinking = userControl(Maze, Output, Stats, Score, maze, temp_maze, thinking, TRUE, h1, m , b, ch, maxX, width, sock);
             }
             break;
          }else if(temp_maze[h1.pos.y][h1.pos.x-2] == 5){                                                 //Points Assignment
@@ -1147,11 +1180,15 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
             mvwprintw(Output,3,1,"Press 'y' to take and assign the points or 'r' to walk away.");  
             wrefresh(Output);
             while(thinking){
-               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, loot, ch, maxX, width, FALSE, FALSE);
+               thinking = assignPoints(Maze, Output, Stats, temp_maze, &h1, ch, maxX, width, FALSE, FALSE, sock);
             }
             break;
          }
       case KEY_END:
+         clearWindow(Output, maxX);
+         mvwprintw(Output,1,1,"Exiting the game...");
+         wrefresh(Output);
+         sleep(3);
          end_game = TRUE;
          break;      
      }
@@ -1160,40 +1197,45 @@ void mainController(const char *maze, int width, int height, char **temp_maze, h
    delwin(Output);                           
    delwin(Stats);  
    delwin(Score);  
-   endwin();       
+   endwin();
+   system("clear");
+   strcpy(h2.stats.msg,"exit");
+   send(sock, &h2, sizeof(human), 0);
+   exit(0); 
+
 }
 
-void next_level(human h1, monster m, boss b, loot_stats* loot, char **temp_maze, int width, bool defeated,const char *maze){
+void next_level(human h1, monster m, boss b, char **temp_maze, int width, bool defeated,const char *maze, int sock){
 
    int monsters;
+
    h1.pos.x = 5;
    h1.pos.y = 0;
    if (defeated == TRUE)
    {
       h1.stats.loses++;
-      mainController(maze, width, width, temp_maze, h1, m, b, loot, FALSE,FALSE);
+      save_stats(&h1, sock);
+      mainController(maze, width, width, temp_maze, h1, m, b, FALSE,FALSE,sock);
 
    }
-   else{    //the reset are in server side script - replace those with a call in the server for the next level.
-
+   else{
+   
       h1.stats.wins++;
       h1.stats.level++;
       char *maze;
-      char **temp_maze = (char **)malloc((width*4)*sizeof(char*));
+      maze = (char*)realloc(maze, width * width * sizeof(char));
+      char **temp_maze = (char **)realloc(temp_maze, (width*4)*sizeof(char*));
       for (int i = 0; i < width; ++i)
       {
-            temp_maze[i] = (char *)malloc((width*4)*sizeof(char));    
+            temp_maze[i] = (char *)realloc(temp_maze[i], (width*4)*sizeof(char));    
       }
     
       monsters = h1.stats.level;
-
       upgradeEnemies(&m, &b, monsters-1);
+      getMaze(h1, maze, width, sock);
+      createTemp_maze(maze,temp_maze,width);
+      mainController(maze, width, width, temp_maze, h1, m, b,  FALSE,FALSE,sock);
 
-      maze = (char*)malloc(width * width * sizeof(char));
-
-      // GenerateMaze(maze,temp_maze,width,width,h1,monsters);
-      // saveMaze(maze,width,width);
-      mainController(maze, width, width, temp_maze, h1, m, b, loot, FALSE,FALSE);
    }
 }
 
@@ -1228,7 +1270,7 @@ int userLogin(human *h1, int sock){
    else if (strcmp(h2.stats.msg, "done") == 0)
    {
       printf("Your username is correct.\n");
-      strcpy(h1->stats.username, username);
+      strcpy(h1->stats.username, h2.stats.username);
       printf("Your password is correct.\nLogging in...\n");
       sleep(3);
       return 1;                              //Well Done
@@ -1240,7 +1282,7 @@ int userLogin(human *h1, int sock){
       printf("Would you like to make a new registration?(y/n): ");
       scanf(" %c",&temp);
       if (temp == 'y'){                                         //Wrong username or pass
-         printf("user chose to registre\n");
+         printf("User chose to register.\n");
          sleep(3);
          return 2;
       }
@@ -1282,36 +1324,36 @@ int userRegistration(human *h1, int sock){
 	bool success = FALSE;
    human h2;
 
-   	printf("Please enter desired username: ");
-   	scanf("%s",(char*)&username);
-   	strcpy(h2.stats.username, username);
+	printf("Please enter desired username: ");
+	scanf("%s",(char*)&username);
+	strcpy(h2.stats.username, username);
 
-   	printf("Please enter desired password: ");
-      scanf("%d",&h2.stats.password);
+	printf("Please enter desired password: ");
+   scanf("%d",&h2.stats.password);
 
-      strcpy(h2.stats.msg, "register");
-   	send(sock, &h2, sizeof(human), 0);
-  	   
-   	if (recv(sock, &h2.stats.msg, 10, 0)  < 0) 
-   	{
-   		printf("\nError: Client didn't receive in register fun.\n");
-   	}
-   	else if(strcmp(h2.stats.msg, "failed") == 0)
-   	{
-   		printf("\n\nYour username is already taken\n");
-   		printf("Please try again in 3 seconds...\n");
-         sleep(3);
-         system("clear");
-         return 0;
-   	}
-      else if (strcmp(h2.stats.msg, "done") == 0)
-      {
-         printf("\nYour account has been created\nLoading game in 3 seconds...\n");
-         sleep(3);
-         strcpy(h1->stats.username, h2.stats.username);
-         strcpy(h2.stats.msg, "");
-         return 1;
-      }
+   strcpy(h2.stats.msg, "register");
+	send(sock, &h2, sizeof(human), 0);
+	   
+	if (recv(sock, &h2.stats.msg, 10, 0)  < 0) 
+	{
+		printf("\nError: Client didn't receive in register fun.\n");
+	}
+	else if(strcmp(h2.stats.msg, "failed") == 0)
+	{
+		printf("\n\nYour username is already taken\n");
+		printf("Please try again in 3 seconds...\n");
+      sleep(3);
+      system("clear");
+      return 0;
+	}
+   else if (strcmp(h2.stats.msg, "done") == 0)
+   {
+      printf("\nYour account has been created\nLoading game in 3 seconds...\n");
+      sleep(3);
+      strcpy(h1->stats.username, h2.stats.username);
+      strcpy(h2.stats.msg, "");
+      return 1;
+   }
 
    
 }
@@ -1321,13 +1363,14 @@ int userRegistration(human *h1, int sock){
 //1st Function to be called - Displays Welcoming Bullshit.
 bool gameInitiation(human *h1, int sock){
    int userChoice, flag, reg;
+   char usr[10];
    reg = 0;
    human h2;
    system("clear");
    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
    printf("                Welcome to ProjectOS.c\n");
    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-   sleep(4);
+   sleep(2);
    system("clear");
    while(1){
       printf("Please chose between register,login, or exit:\n");
@@ -1353,9 +1396,12 @@ bool gameInitiation(human *h1, int sock){
                {
                   strcpy(h2.stats.msg,"load_stats");
                   strcpy(h2.stats.username,h1->stats.username);
+                  strcpy(usr,h1->stats.username);
                   send(sock, &h2, sizeof(human), 0);
                   recv(sock, &h2, sizeof(human), 0);
-                  h1->stats = h2.stats;                          
+                  h1->stats = h2.stats;
+                  h1->loot = h2.loot;  
+                  strcpy(h1->stats.username,usr);                 
                   return TRUE;                           
                }
                else
@@ -1414,8 +1460,7 @@ int main(int argc, char *argv [])
 	boss b;
 	b = bossInit(b);
 
-
-	int monsters = h1.stats.level -1;;
+	int monsters = h1.stats.level;     //ADD -1 so that the first level doesnt have any monsters in it
    j = 7;   
    for (i = 1; i < h1.stats.level; ++i)
    {
@@ -1426,24 +1471,68 @@ int main(int argc, char *argv [])
    char **temp_maze = (char **)malloc((j*4)*sizeof(char*));                               
    for (i = 0; i < j; ++i)                                 
    {                                
-         temp_maze[i] = (char *)malloc((j*4)*sizeof(char));                                     
+         temp_maze[i] = (char *)malloc((j*4)*sizeof(char));                               
    }
                                  
    maze = (char*)malloc(j * j * sizeof(char));
-   // if(maze == NULL){                                 
-   //    printf("error: not enough memory\n");                                
-   //    exit(0);                               
-   // }
+   if(maze == NULL){                                 
+      printf("Error: not enough memory\n");                                
+      exit(0);                                   
+   }
 
-   //Get maze array
-   // strcpy(h2.stats.msg,"create_maze");
-   // send(sock, &h2, sizeof(human), 0);
-   // recv(sock, , sizeof(human), 0);
+   getMaze(h1, maze, j, sock);
 
-   // //Get temp_maze array
-   // strcpy(h2.stats.msg,"create_maze");
-   // send(sock, &h2, sizeof(human), 0);
-   // recv(sock, , sizeof(human), 0);
+printf("%d\n",h1.stats.health );
+printf("%d\n",h1.stats.armor );
+printf("%d\n",h1.stats.attack );
+printf("%g\n",h1.stats.accuracy);
+printf("%d\n",h1.stats.level );
+printf("%d\n",h1.stats.wins );
+printf("%d\n\n",h1.stats.loses );
+
+
+
+   int x,y;
+   for(y = 0; y < j; y++) {
+      for(x = 0; x < j; x++) {
+         printf("%d",maze[y * j + x] );
+      }
+      printf("\n");
+   }
+   printf("\n");
+   sleep(5);
+
+
+
+
+
+   createTemp_maze(maze,temp_maze,j);
+
+
+
+
+
+
+   for (int y = 0; y < j; y++)
+   {
+      for (int x = 0; x < j*4; x++)
+      {
+         printf("%d",temp_maze[y][x] );
+      }
+      printf("\n");
+   }
+
+
+   sleep(5);
+
+
+
+
+
+
+
+
+   mainController(maze, j, j, temp_maze, h1, m, b, TRUE,loaded, sock);
 
 
 
@@ -1455,6 +1544,49 @@ int main(int argc, char *argv [])
 
 
 //=============TESTING=============
+   // // print maze array
+   // int width = j;
+   // int x,y;
+   // for(y = 0; y < width; y++) {
+   //    for(x = 0; x < width; x++) {
+   //       printf("%d",maze[y * width + x] );
+   //    }
+   //    printf("\n");
+   // }
+   // printf("\n");
+
+
+   // //print temp_maze array
+   // for (int y = 0; y < width; y++)
+   // {
+   //    for (int x = 0; x < width*4; x++)
+   //    {
+   //       printf("%d",temp_maze[y][x] );
+   //    }
+   //    printf("\n");
+   // }
+
+
+   // int x,y;
+   //    for(y = 0; y < j; y++) {
+   //       for(x = 0; x < j; x++) {
+   //          printf("%d",maze[y * j + x] );
+   //       }
+   //       printf("\n");
+   //    }
+   //    printf("\n");
+   //    sleep(1);
+
+
+
+   // //Get temp_maze array
+   // strcpy(h2.stats.msg,"create_temp_maze");
+   // send(sock, &h2, sizeof(human), 0);
+   // recv(sock, , sizeof(human), 0);
+
+
+
+
          // if (loaded == TRUE)
          // {
          //    printf("True, the user just loaded.\n");
@@ -1476,7 +1608,6 @@ int main(int argc, char *argv [])
 
 
 
-	
 
 	// printf ("What say you?\n");
 	// scanf("%s",msg);
