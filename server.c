@@ -33,6 +33,7 @@ typedef struct
    int wins;
    int loses;
    char msg[SIZE];
+   
 
 }human_stats;
 
@@ -275,17 +276,6 @@ void GenerateMaze(human *h1) {
 
    saveMaze(maze,width,width,h1->stats.level);  
    send(h1->sock, maze, j*j, 0);
-   
-
-   for(y = 0; y < width; y++) {
-      for(x = 0; x < width; x++) {
-         printf("%d",maze[y * width + x] );
-      }
-      printf("\n");
-   }
-   printf("\n");
-
-
    free(maze);
 }
 
@@ -314,7 +304,9 @@ void load_stats(human *h1)
    fscanf(fp,"%d\n",&h2.stats.loses);
    fscanf(fp,"%d\n",&h2.loot.points);
    fclose(fp);
-   send(h1->sock, &h2, sizeof(human), 0);
+   strcpy(h2.stats.username, h1->stats.username);
+   send(h1->sock, &h2.stats, sizeof(human_stats), 0);
+   send(h1->sock, &h2.loot.points, sizeof(int), 0);
 }
 
 
@@ -498,6 +490,7 @@ int main(int argc, char *argv []){
 
    close(h1.sock);
    printf ("Connection closed...\n") ;
+   sleep(1);
    close(psock);
    unlink(argv [1]);
 

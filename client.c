@@ -21,7 +21,6 @@ typedef struct
 }loot_stats;
 
 /////////Humans//////////
-
 typedef struct 
 {
    char username[50];
@@ -171,7 +170,7 @@ void upgradeEnemies(monster* m, boss* b, int lvl)
 void save_stats(human *h1, int sock){
    human h2;
    h2.stats = h1->stats;
-   h2.loot = h1->loot;
+   h2.loot.points = h1->loot.points;
    strcpy(h2.stats.msg,"save_stats");
    send(sock, &h2, sizeof(human),0);
 }
@@ -197,18 +196,35 @@ void createTemp_maze(char *maze, char **temp_maze, int width){
 //Get maze from server.
 void getMaze(human h1, char *maze, int j, int sock){
 
-      strcpy(h1.stats.msg,"create_maze");
-      send(sock,&h1, sizeof(human),0);
-      recv(sock,maze, j*j,0);
-      if (maze[0] == -1 || maze[0] == 0)
-      {
-         printf("Error: Client failed to receive array from server.\n");
-         strcpy(h1.stats.msg,"exit");
-         send(sock,&h1, sizeof(human),0);
-         exit(0);
-      }
+	human h2;
+	h2 = humanInit(h2);
+	strcpy(h2.stats.msg,"create_maze");
+	h2.stats.level = h1.stats.level;
+	send(sock,&h2, sizeof(human),0);
+	recv(sock,maze, j*j,0);
+	if (maze[0] == -1 || maze[0] == 0)
+	{
+	  printf("Error: Client failed to receive array from server.\n");
+	  // strcpy(h1.stats.msg,"exit");
+	  // send(sock,&h1, sizeof(human),0);
+	  // exit(0);    //Abandon ship, abandon all hope.
+	}
 }
 
+
+//Request human_stats from server.
+void loadStats(human *h1, int sock){
+
+   human h2;
+   h2 = humanInit(h2);
+   strcpy(h2.stats.msg,"load_stats");
+   strcpy(h2.stats.username,h1->stats.username);
+   send(sock, &h2, sizeof(human), 0);
+   recv(sock, &h2.stats, sizeof(human_stats), 0);  
+   recv(sock, &h2.loot.points, sizeof(int), 0);  
+   h1->stats = h2.stats;
+   h1->loot.points = h2.loot.points;
+}
 
 //Erase previous position of da smiley - CLIENT SIDE
 void clearHistory(human h1, WINDOW *win){
@@ -1211,8 +1227,8 @@ void next_level(human h1, monster m, boss b, char **temp_maze, int width, bool d
 
    h1.pos.x = 5;
    h1.pos.y = 0;
-   if (defeated == TRUE)
-   {
+   if (defeated == TRUE){
+      
       h1.stats.loses++;
       save_stats(&h1, sock);
       mainController(maze, width, width, temp_maze, h1, m, b, FALSE,FALSE,sock);
@@ -1229,7 +1245,6 @@ void next_level(human h1, monster m, boss b, char **temp_maze, int width, bool d
       {
             temp_maze[i] = (char *)realloc(temp_maze[i], (width*4)*sizeof(char));    
       }
-    
       monsters = h1.stats.level;
       upgradeEnemies(&m, &b, monsters-1);
       getMaze(h1, maze, width, sock);
@@ -1394,14 +1409,7 @@ bool gameInitiation(human *h1, int sock){
                }
                if (reg == 1)                
                {
-                  strcpy(h2.stats.msg,"load_stats");
-                  strcpy(h2.stats.username,h1->stats.username);
-                  strcpy(usr,h1->stats.username);
-                  send(sock, &h2, sizeof(human), 0);
-                  recv(sock, &h2, sizeof(human), 0);
-                  h1->stats = h2.stats;
-                  h1->loot = h2.loot;  
-                  strcpy(h1->stats.username,usr);                 
+                  loadStats(h1,sock);
                   return TRUE;                           
                }
                else
@@ -1435,28 +1443,22 @@ int main(int argc, char *argv [])
 {
 
 	int sock, i,j;
-	char msg[SIZE], *maze;
+	char msg[SIZE], *maze, **temp_maze;
 	struct sockaddr_in addr; 								
+
 
 	addr.sin_family = AF_INET; 								
 	inet_aton(argv [1], &addr.sin_addr);
 	addr.sin_port = htons(atoi(argv [2]));
-
 	sock = socket(AF_INET, SOCK_STREAM, 0); 				
 	connect(sock,(struct sockaddr *)&addr,sizeof(addr));
 
 	human h1, h2;
 	h1 = humanInit(h1);
-
 	bool loaded;
 	loaded = gameInitiation(&h1, sock);
-
-	loot_stats loot;
-	loot.points = 0;
-
-	monster m;
+ 	monster m;
 	m = monsterInit(m);
-
 	boss b;
 	b = bossInit(b);
 
@@ -1468,70 +1470,20 @@ int main(int argc, char *argv [])
       upgradeEnemies(&m, &b, monsters);
    }
 
-   char **temp_maze = (char **)malloc((j*4)*sizeof(char*));                               
+   maze = (char*)malloc(j * j * sizeof(char));
+   temp_maze = (char **)malloc((j*4)*sizeof(char*));                               
    for (i = 0; i < j; ++i)                                 
    {                                
          temp_maze[i] = (char *)malloc((j*4)*sizeof(char));                               
    }
-                                 
-   maze = (char*)malloc(j * j * sizeof(char));
    if(maze == NULL){                                 
       printf("Error: not enough memory\n");                                
       exit(0);                                   
    }
 
+
    getMaze(h1, maze, j, sock);
-
-printf("%d\n",h1.stats.health );
-printf("%d\n",h1.stats.armor );
-printf("%d\n",h1.stats.attack );
-printf("%g\n",h1.stats.accuracy);
-printf("%d\n",h1.stats.level );
-printf("%d\n",h1.stats.wins );
-printf("%d\n\n",h1.stats.loses );
-
-
-
-   int x,y;
-   for(y = 0; y < j; y++) {
-      for(x = 0; x < j; x++) {
-         printf("%d",maze[y * j + x] );
-      }
-      printf("\n");
-   }
-   printf("\n");
-   sleep(5);
-
-
-
-
-
    createTemp_maze(maze,temp_maze,j);
-
-
-
-
-
-
-   for (int y = 0; y < j; y++)
-   {
-      for (int x = 0; x < j*4; x++)
-      {
-         printf("%d",temp_maze[y][x] );
-      }
-      printf("\n");
-   }
-
-
-   sleep(5);
-
-
-
-
-
-
-
-
    mainController(maze, j, j, temp_maze, h1, m, b, TRUE,loaded, sock);
 
 
@@ -1622,6 +1574,16 @@ printf("%d\n\n",h1.stats.loses );
 	// 	send(sock, msg, strlen(msg)+1,0);
 	// 	recv(sock, msg, SIZE, 0) ;
 	// }
+
+
+
+
+
+
+
+
+
+
 
 
 	close(sock);
