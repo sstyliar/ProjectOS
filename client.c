@@ -1230,7 +1230,7 @@ void next_level(human h1, monster m, boss b, char **temp_maze, int width, bool d
    if (defeated == TRUE){
       
       h1.stats.loses++;
-      save_stats(&h1, sock);
+      // save_stats(&h1, sock);
       mainController(maze, width, width, temp_maze, h1, m, b, FALSE,FALSE,sock);
 
    }
