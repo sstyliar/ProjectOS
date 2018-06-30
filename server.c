@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-// #include <ncurses.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -11,7 +10,10 @@
 #include <pthread.h>
 
 #define SIZE 1024
-#define PORT 44444
+#define NUM_CLIENT 3
+
+void *connection_handler();
+
 /////////Loot////////////
 typedef struct 
 {
@@ -84,8 +86,8 @@ typedef struct
 
 typedef struct 
 {
-   // boss_pos pos;
    boss_stats stats;
+
 }boss;
 
 
@@ -398,13 +400,7 @@ void userRegistration(human *h1){
 }
 
 
-
-
-void *socketThread(void *args){
-
-   human *h1;
-   h1 = (human *)args;
-
+void socketThread(human *h1){
 
    if (strcmp(h1->stats.msg, "register") == 0)
    {
@@ -428,94 +424,89 @@ void *socketThread(void *args){
    {
       save_stats(h1);
    }
-
 }
 
 
 
-
-int main(int argc, char *argv []){
-
-   human h1;
-   h1 = humanInit(h1);
+int main(int argc, char *argv[])
+{
+ 
    loot_stats loot;
    loot.points = 0;
    monster m;
    m = monsterInit(m);
    boss b;
    b = bossInit(b);
-  
-   int monsters = h1.stats.level -1;;
-   char *maze;
-   void *status;
 
-   int psock, ret;
-	struct sockaddr_in serverAddr;
+   int psock, client_sock, c, i=0; 
+   struct sockaddr_in serv_addr , client;
+   
 
-	int newSocket;
-	struct sockaddr_in newAddr;
+   serv_addr.sin_family = AF_INET;
+   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+   serv_addr.sin_port = htons(atoi(argv[1]));
+   
+   if((psock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+      printf("Failed creating socket\n");
+   
+   bind(psock, ( struct sockaddr *)&serv_addr, sizeof(serv_addr));
+   listen(psock, 3) ;       
+   
+   system("clear");  
+   printf("Waiting for new connection...\n") ;
+   c = sizeof(struct sockaddr_in);
+   pthread_t thread_id;
+   
+   // while((client_sock = accept(psock,(struct sockaddr *)&client, (socklen_t*)&c))){
+   while((client_sock = accept(psock,NULL, NULL)))
+   {
+      
+      printf("Connection established...\n") ;
+      if( pthread_create( &thread_id, NULL ,  connection_handler , (void*) &client_sock) < 0)
+      {
+            perror("could not create thread");
+            return 1;
+      }
+      i++;
+      if (i == 3)
+      {
+         break;
+      }
+      
+   }
+   pthread_join(thread_id, NULL);
+   printf ("Connection closed...\n") ;
+   sleep(2);
+   close(psock);
+   unlink(argv [1]);
+   return 0;
 
-	socklen_t addr_size;
-
-	
-	pid_t childpid;
-
-	psock = socket(AF_INET, SOCK_STREAM, 0);
-	if(psock < 0){
-		printf("[-]Error in connection.\n");
-		exit(1);
-	}
-	printf("[+]Server Socket is created.\n");
-
-	memset(&serverAddr, '\0', sizeof(serverAddr));
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(atoi(argv[1]));
-	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-	ret = bind(psock, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-	if(ret < 0){
-		printf("[-]Error in binding.\n");
-		exit(1);
-	}
-	
-
-	if(listen(psock, 10) == 0){
-		printf("[+]Listening....\n");
-	}else{
-		printf("[-]Error in binding.\n");
-	}
+}
 
 
-	while(1){
-		h1.sock = accept(psock, (struct sockaddr*)&newAddr, &addr_size);
-		if(h1.sock < 0){
-			exit(1);
-		}
-		printf("Connection accepted from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
 
-		if((childpid = fork()) == 0){
-			close(psock);
-
-		strcpy(h1.stats.msg,"");
-
-		while(1){
-			recv(h1.sock,&h1,sizeof(human), 0);
-			if(strcmp(h1.stats.msg, "exit") == 0){
-				printf("Disconnected from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
-				break;
-			}else{
-				printf("Server received:%s\n",h1.stats.msg);
-				socketThread((void *)&h1);
-			}
-		}
-	}
-
+void *connection_handler(void *socket_desc)
+{
+   
+   
+   human h1;
+   h1 = humanInit(h1);
+   h1.sock = *(int*)socket_desc;
+   
+   while (strcmp(h1.stats.msg, "exit") != 0) {
+      if (recv(h1.sock, &h1, sizeof(human), 0) < 0)
+      {
+         printf("Connection Error.\n");
+         exit(0);
+      }
+      else{
+         printf("Server received: %s\n",h1.stats.msg);
+         socketThread(&h1);
+      }
    }
 
-   close(newSocket);
-   printf ("Connection closed...\n") ;
-   sleep(1);
-   unlink(argv [1]);
-
+   close(h1.sock);
    return 0;
 }
+
+

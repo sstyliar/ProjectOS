@@ -10,10 +10,10 @@ server.o: server.c
 	gcc -c server.c
 	
 runClient:
-	./client 127.0.0.1 123456
+	./client 127.0.0.1 3354164
 
 runServer:
-	gnome-terminal -x ./server 123456
+	gnome-terminal -x ./server 3354164
 
 clean:
 	rm *.o client server maze*
